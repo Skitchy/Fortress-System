@@ -1,0 +1,29 @@
+{
+  "name": "fortress-system",
+  "version": "0.1.0",
+  "description": "Zero-dependency quality validation system for any JavaScript/TypeScript project",
+  "main": "src/index.js",
+  "bin": {
+    "fortress": "bin/fortress.js"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "quality",
+    "validation",
+    "lint",
+    "typescript",
+    "testing",
+    "ci",
+    "code-quality"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "src/"
+  ]
+}
