@@ -7,7 +7,8 @@
     "fortress": "bin/fortress.js"
   },
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "postinstall": "node src/cli/postinstall.js"
   },
   "keywords": [
     "quality",
@@ -16,7 +17,8 @@
     "typescript",
     "testing",
     "ci",
-    "code-quality"
+    "code-quality",
+    "claude-code"
   ],
   "license": "MIT",
   "engines": {
