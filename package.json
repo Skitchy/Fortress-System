@@ -20,7 +20,16 @@
     "code-quality",
     "claude-code"
   ],
+  "author": "Skitchy",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Skitchy/Fortress-System.git"
+  },
+  "homepage": "https://github.com/Skitchy/Fortress-System#readme",
+  "bugs": {
+    "url": "https://github.com/Skitchy/Fortress-System/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
