@@ -80,7 +80,27 @@ console.log(`${c.bold}  Score: ${scoreColor}${scoreResult.score}/100${c.reset}  
 if (allPassed) {
   console.log(`  ${c.green}${c.bold}All checks passed.${c.reset}\n`);
 } else {
-  console.log(`  ${c.red}${c.bold}Some checks failed.${c.reset}\n`);
+  // Check if failures look like missing tooling rather than real code issues
+  const setupErrors = ['TypeScript compilation failed', 'Lint check failed'];
+  const failedResults = results.filter(r => {
+    const cfg = config.checks[r.key];
+    return cfg && cfg.enabled && !r.passed;
+  });
+  const allSetupIssues = failedResults.length > 0 && failedResults.every(r =>
+    r.errors.every(e => setupErrors.includes(e))
+  );
+
+  if (allSetupIssues) {
+    console.log(`  ${c.yellow}${c.bold}Some checks failed — but that's expected.${c.reset}`);
+    console.log(`  ${c.gray}You selected tools that aren't set up in this project yet.${c.reset}`);
+    console.log(`  ${c.gray}This is totally normal for a new project.${c.reset}\n`);
+    console.log(`  ${c.bold}What to do next:${c.reset}`);
+    console.log(`  ${c.gray}•${c.reset} Open Claude Code and ask it to set up the tools for you`);
+    console.log(`  ${c.gray}•${c.reset} Or re-run ${c.bold}fortress init --force${c.reset} and pick only what's installed`);
+    console.log(`  ${c.gray}•${c.reset} Or edit ${c.bold}fortress.config.js${c.reset} to disable checks you're not ready for\n`);
+  } else {
+    console.log(`  ${c.red}${c.bold}Some checks failed.${c.reset}\n`);
+  }
 }
 
 process.exit(allPassed ? 0 : 1);

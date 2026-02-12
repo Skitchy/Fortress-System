@@ -18,33 +18,33 @@ const c = {
 };
 
 const FRAMEWORKS = [
-  { key: '1', value: 'next', label: 'Next.js' },
-  { key: '2', value: 'react', label: 'React' },
-  { key: '3', value: 'vue', label: 'Vue' },
-  { key: '4', value: 'nuxt', label: 'Nuxt' },
-  { key: '5', value: 'svelte', label: 'Svelte/SvelteKit' },
-  { key: '6', value: 'angular', label: 'Angular' },
-  { key: '7', value: 'node', label: 'Node.js (Express/Fastify/Koa)' },
-  { key: '8', value: null, label: 'Other / None' },
+  { key: '1', value: 'next', label: 'Next.js', desc: 'Full-stack React with SSR/SSG' },
+  { key: '2', value: 'react', label: 'React', desc: 'Frontend UI library (SPA)' },
+  { key: '3', value: 'vue', label: 'Vue', desc: 'Progressive frontend framework' },
+  { key: '4', value: 'nuxt', label: 'Nuxt', desc: 'Full-stack Vue framework' },
+  { key: '5', value: 'svelte', label: 'Svelte/SvelteKit', desc: 'Compiled UI framework' },
+  { key: '6', value: 'angular', label: 'Angular', desc: 'Enterprise frontend framework' },
+  { key: '7', value: 'node', label: 'Node.js', desc: 'Backend API (Express/Fastify/Koa)' },
+  { key: '8', value: null, label: 'Other / None', desc: 'Skip or not listed' },
 ];
 
 const LANGUAGES = [
-  { key: '1', value: 'typescript', label: 'TypeScript' },
-  { key: '2', value: 'javascript', label: 'JavaScript' },
+  { key: '1', value: 'typescript', label: 'TypeScript', desc: 'JavaScript + type safety (recommended)' },
+  { key: '2', value: 'javascript', label: 'JavaScript', desc: 'Dynamic, no type annotations' },
 ];
 
 const TEST_FRAMEWORKS = [
-  { key: '1', value: 'vitest', label: 'Vitest' },
-  { key: '2', value: 'jest', label: 'Jest' },
-  { key: '3', value: 'mocha', label: 'Mocha' },
-  { key: '4', value: 'node:test', label: 'Node built-in' },
-  { key: '5', value: null, label: 'None' },
+  { key: '1', value: 'vitest', label: 'Vitest', desc: 'Fast, Vite-native test runner' },
+  { key: '2', value: 'jest', label: 'Jest', desc: 'Popular, batteries-included' },
+  { key: '3', value: 'mocha', label: 'Mocha', desc: 'Flexible, bring-your-own assertions' },
+  { key: '4', value: 'node:test', label: 'Node built-in', desc: 'Zero-dependency, built into Node' },
+  { key: '5', value: null, label: 'None', desc: 'Skip for now' },
 ];
 
 const LINTERS = [
-  { key: '1', value: 'eslint', label: 'ESLint' },
-  { key: '2', value: 'biome', label: 'Biome' },
-  { key: '3', value: null, label: 'None' },
+  { key: '1', value: 'eslint', label: 'ESLint', desc: 'Industry standard, highly configurable' },
+  { key: '2', value: 'biome', label: 'Biome', desc: 'Fast all-in-one linter + formatter' },
+  { key: '3', value: null, label: 'None', desc: 'Skip for now' },
 ];
 
 function ask(rl, question) {
@@ -153,9 +153,10 @@ async function runWizard(detected) {
     // Step 2: Framework
     console.log(`  ${c.bold}What framework are you using?${c.reset}\n`);
     for (const fw of FRAMEWORKS) {
-      console.log(`  ${c.gray}[${fw.key}]${c.reset} ${fw.label}`);
+      console.log(`  ${c.gray}[${fw.key}]${c.reset} ${fw.label}  ${c.gray}${fw.desc}${c.reset}`);
     }
     console.log(`\n  Auto-detected: ${formatDetected(detected.framework)}`);
+    console.log(`  ${c.gray}Not sure? Pick anything — you can reconfigure later with: fortress init --force${c.reset}`);
     const fwChoice = await ask(rl, `  ${c.bold}Choice [1-8, or Enter to accept]:${c.reset} `);
     detected.framework = pickFromOptions(FRAMEWORKS, fwChoice, detected.framework);
     console.log('');
@@ -163,7 +164,7 @@ async function runWizard(detected) {
     // Step 3: Language
     console.log(`  ${c.bold}What language?${c.reset}\n`);
     for (const lang of LANGUAGES) {
-      console.log(`  ${c.gray}[${lang.key}]${c.reset} ${lang.label}`);
+      console.log(`  ${c.gray}[${lang.key}]${c.reset} ${lang.label}  ${c.gray}${lang.desc}${c.reset}`);
     }
     console.log(`\n  Auto-detected: ${formatDetected(detected.language)}`);
     const langChoice = await ask(rl, `  ${c.bold}Choice [1-2, or Enter to accept]:${c.reset} `);
@@ -173,7 +174,7 @@ async function runWizard(detected) {
     // Step 4: Test Framework
     console.log(`  ${c.bold}What test framework?${c.reset}\n`);
     for (const tf of TEST_FRAMEWORKS) {
-      console.log(`  ${c.gray}[${tf.key}]${c.reset} ${tf.label}`);
+      console.log(`  ${c.gray}[${tf.key}]${c.reset} ${tf.label}  ${c.gray}${tf.desc}${c.reset}`);
     }
     console.log(`\n  Auto-detected: ${formatDetected(detected.testFramework)}`);
     const tfChoice = await ask(rl, `  ${c.bold}Choice [1-5, or Enter to accept]:${c.reset} `);
@@ -183,7 +184,7 @@ async function runWizard(detected) {
     // Step 5: Linter
     console.log(`  ${c.bold}What linter?${c.reset}\n`);
     for (const lt of LINTERS) {
-      console.log(`  ${c.gray}[${lt.key}]${c.reset} ${lt.label}`);
+      console.log(`  ${c.gray}[${lt.key}]${c.reset} ${lt.label}  ${c.gray}${lt.desc}${c.reset}`);
     }
     console.log(`\n  Auto-detected: ${formatDetected(detected.linter)}`);
     const ltChoice = await ask(rl, `  ${c.bold}Choice [1-3, or Enter to accept]:${c.reset} `);
@@ -266,11 +267,12 @@ async function runWizard(detected) {
   // Final guidance
   console.log('');
   console.log(`  ${c.bold}\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550${c.reset}`);
-  console.log(`  ${c.bold}Setup complete!${c.reset} Open Claude Code in this`);
-  console.log(`  project to start building with quality`);
-  console.log(`  checks enforced automatically.`);
+  console.log(`  ${c.bold}Setup complete!${c.reset}`);
   console.log('');
-  console.log(`  Or run: ${c.bold}fortress quick${c.reset}`);
+  console.log(`  Type ${c.bold}claude${c.reset} in this terminal and wait`);
+  console.log(`  for the awesomeness!`);
+  console.log('');
+  console.log(`  Or run: ${c.bold}npx fortress quick${c.reset}`);
   console.log(`  ${c.bold}\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550${c.reset}`);
   console.log('');
 })();

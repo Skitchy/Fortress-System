@@ -6,6 +6,7 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 const COMMANDS = {
+  setup: '../src/cli/commands/setup.js',
   init: '../src/cli/commands/init.js',
   quick: '../src/cli/commands/quick.js',
   report: '../src/cli/commands/report.js',
@@ -42,6 +43,7 @@ if (!command || command === '--help' || command === '-h') {
   console.log(`${bold}Usage:${reset}`);
   console.log(`  fortress <command> [options]\n`);
   console.log(`${bold}Commands:${reset}`);
+  console.log(`  setup      Set up a new project (init + install + wizard)`);
   console.log(`  init       Auto-detect project stack and generate fortress.config.js`);
   console.log(`  quick      Run quick checks (type-check, lint, test, content)`);
   console.log(`  report     Run all checks and generate scored JSON report`);
