@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 const ENABLE_COLORS = process.stdout.isTTY;
 const c = {
@@ -50,9 +50,9 @@ function getInitCommand(pm) {
   // Step 1: Ensure package.json exists
   const pkgPath = path.join(projectRoot, 'package.json');
   if (fs.existsSync(pkgPath)) {
-    console.log(`  ${c.green}[1/3]${c.reset} package.json already exists`);
+    console.log(`  ${c.green}[1/4]${c.reset} package.json already exists`);
   } else {
-    console.log(`  ${c.bold}[1/3]${c.reset} Initializing package.json...`);
+    console.log(`  ${c.bold}[1/4]${c.reset} Initializing package.json...`);
     try {
       execSync(getInitCommand(pm), { cwd: projectRoot, stdio: 'pipe' });
       console.log(`  ${c.green}       Created package.json${c.reset}`);
@@ -63,7 +63,21 @@ function getInitCommand(pm) {
     }
   }
 
-  // Step 2: Install fortress-system
+  // Step 2: Ensure git is initialized
+  const gitDir = path.join(projectRoot, '.git');
+  if (fs.existsSync(gitDir)) {
+    console.log(`  ${c.green}[2/4]${c.reset} git already initialized`);
+  } else {
+    console.log(`  ${c.bold}[2/4]${c.reset} Initializing git repository...`);
+    try {
+      execSync('git init', { cwd: projectRoot, stdio: 'pipe' });
+      console.log(`  ${c.green}       Initialized empty git repository${c.reset}`);
+    } catch (err) {
+      console.error(`\n  ${c.yellow}Could not initialize git${c.reset} ${c.gray}(non-critical)${c.reset}`);
+    }
+  }
+
+  // Step 3: Install fortress-system
   // --local flag: install from a local path (for development/testing)
   const args = process.argv.slice(2);
   const localFlag = args.find((a) => a.startsWith('--local'));
@@ -87,11 +101,11 @@ function getInitCommand(pm) {
   })();
 
   if (fortressInstalled) {
-    console.log(`  ${c.green}[2/3]${c.reset} fortress-system already installed`);
+    console.log(`  ${c.green}[3/4]${c.reset} fortress-system already installed`);
   } else {
     const pkg = localPath || 'fortress-system';
     const label = localPath ? `fortress-system from ${pkg}` : 'fortress-system';
-    console.log(`  ${c.bold}[2/3]${c.reset} Installing ${label}...`);
+    console.log(`  ${c.bold}[3/4]${c.reset} Installing ${label}...`);
     try {
       const installCmd = getInstallCommand(pm, pkg);
       execSync(installCmd, { cwd: projectRoot, stdio: 'inherit' });
@@ -103,8 +117,8 @@ function getInitCommand(pm) {
     }
   }
 
-  // Step 3: Launch init wizard
-  console.log(`  ${c.bold}[3/3]${c.reset} Launching setup wizard...\n`);
+  // Step 4: Launch init wizard
+  console.log(`  ${c.bold}[4/4]${c.reset} Launching setup wizard...\n`);
 
   // Resolve init.js — prefer the installed copy so it matches the installed version,
   // but fall back to the local copy (useful during development).
@@ -119,10 +133,9 @@ function getInitCommand(pm) {
   }
 
   try {
-    execSync(`node "${initPath}" ${process.argv.slice(3).join(' ')}`, {
+    execFileSync(process.execPath, [initPath, ...process.argv.slice(3)], {
       cwd: projectRoot,
       stdio: 'inherit',
-      env: process.env,
     });
   } catch {
     // init.js handles its own errors and output; a non-zero exit just means

@@ -18,6 +18,15 @@ try {
     process.exit(0);
   }
 
+  // Validate INIT_CWD is a real absolute path, not a system directory
+  const resolved = path.resolve(projectRoot);
+  const SYSTEM_DIRS = ['/', '/etc', '/usr', '/var', '/bin', '/sbin', '/tmp',
+    '/System', '/Library', '/Applications', '/private',
+    'C:\\Windows', 'C:\\Program Files'];
+  if (SYSTEM_DIRS.includes(resolved)) {
+    process.exit(0);
+  }
+
   // Sanity check - project root should have a package.json
   if (!fs.existsSync(path.join(projectRoot, 'package.json'))) {
     process.exit(0);

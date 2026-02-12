@@ -3,8 +3,12 @@
 const fs = require('fs');
 const path = require('path');
 
+const { execSync } = require('child_process');
+
 const FORTRESS_START = '<!-- FORTRESS:START -->';
 const FORTRESS_END = '<!-- FORTRESS:END -->';
+const HOOK_START = '# FORTRESS:START';
+const HOOK_END = '# FORTRESS:END';
 
 /**
  * Create or update CLAUDE.md with detected project info.
@@ -120,9 +124,103 @@ function installStatusline(projectRoot) {
   fs.chmodSync(destPath, 0o755);
 }
 
+/**
+ * Install or update the git pre-commit hook.
+ * - If no .git exists, runs `git init`
+ * - If no hook exists, copies our template
+ * - If hook exists with our markers, replaces our section
+ * - If hook exists without our markers, appends our section
+ */
+function installGitHook(projectRoot) {
+  const gitDir = path.join(projectRoot, '.git');
+
+  // Ensure git is initialized
+  if (!fs.existsSync(gitDir)) {
+    execSync('git init', { cwd: projectRoot, stdio: 'pipe' });
+  }
+
+  const hooksDir = path.join(gitDir, 'hooks');
+  if (!fs.existsSync(hooksDir)) {
+    fs.mkdirSync(hooksDir, { recursive: true });
+  }
+
+  const hookPath = path.join(hooksDir, 'pre-commit');
+  const templatePath = path.join(__dirname, '../templates/pre-commit');
+  const template = fs.readFileSync(templatePath, 'utf-8');
+
+  // Extract just the fortress section (everything from HOOK_START to HOOK_END inclusive)
+  const sectionStart = template.indexOf(HOOK_START);
+  const sectionEnd = template.indexOf(HOOK_END) + HOOK_END.length;
+  const fortressSection = template.substring(sectionStart, sectionEnd);
+
+  if (fs.existsSync(hookPath)) {
+    const existing = fs.readFileSync(hookPath, 'utf-8');
+    const isSymlink = fs.lstatSync(hookPath).isSymbolicLink();
+
+    // If it's a symlink, remove it so we don't mutate the target file
+    if (isSymlink) {
+      fs.unlinkSync(hookPath);
+    }
+
+    // Treat empty files the same as no file
+    if (!existing.trim()) {
+      fs.writeFileSync(hookPath, template);
+    } else {
+      const existingStart = existing.indexOf(HOOK_START);
+      const existingEnd = existing.indexOf(HOOK_END);
+
+      if (existingStart !== -1 && existingEnd !== -1) {
+        // Replace existing fortress section
+        const before = existing.substring(0, existingStart);
+        const after = existing.substring(existingEnd + HOOK_END.length);
+        fs.writeFileSync(hookPath, before + fortressSection + after);
+      } else {
+        // Append our section to existing hook
+        fs.writeFileSync(hookPath, existing.trimEnd() + '\n\n' + fortressSection + '\n');
+      }
+    }
+  } else {
+    // No hook exists — write the full template (includes shebang)
+    fs.writeFileSync(hookPath, template);
+  }
+
+  fs.chmodSync(hookPath, 0o755);
+}
+
+/**
+ * Install agent templates to .claude/agents/ directory.
+ * Reads all .md files from src/templates/agents/ and copies them.
+ * Returns array of installed filenames for logging.
+ */
+function installAgents(projectRoot) {
+  const claudeDir = path.join(projectRoot, '.claude');
+  const agentsDir = path.join(claudeDir, 'agents');
+  const templatesDir = path.join(__dirname, '../templates/agents');
+
+  if (!fs.existsSync(templatesDir)) {
+    return [];
+  }
+
+  if (!fs.existsSync(agentsDir)) {
+    fs.mkdirSync(agentsDir, { recursive: true });
+  }
+
+  const files = fs.readdirSync(templatesDir).filter(f => f.endsWith('.md'));
+  for (const file of files) {
+    fs.copyFileSync(
+      path.join(templatesDir, file),
+      path.join(agentsDir, file)
+    );
+  }
+
+  return files;
+}
+
 module.exports = {
   updateClaudeMd,
   updateClaudeSettings,
   installStatusline,
+  installGitHook,
+  installAgents,
   mergeFortressSection,
 };

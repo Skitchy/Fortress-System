@@ -17,12 +17,11 @@ const COMMANDS = {
 if (command === 'deploy') {
   // Run validate first, then report if it passes
   const validatePath = require.resolve('../src/cli/commands/validate.js');
-  const { execSync } = require('child_process');
+  const { execFileSync } = require('child_process');
   try {
-    execSync(`node "${validatePath}" ${args.slice(1).join(' ')}`, {
+    execFileSync(process.execPath, [validatePath, ...args.slice(1)], {
       cwd: process.cwd(),
       stdio: 'inherit',
-      env: process.env,
     });
   } catch {
     process.exit(1);

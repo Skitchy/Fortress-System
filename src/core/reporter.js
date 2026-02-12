@@ -33,7 +33,17 @@ function generateReport(results, scoreResult, config, totalDuration) {
  * Returns the file path of the saved report.
  */
 function saveReport(report, outputDir) {
-  const resolvedDir = path.resolve(outputDir);
+  const projectRoot = process.cwd();
+  const resolvedDir = path.resolve(projectRoot, outputDir);
+
+  // Prevent path traversal — outputDir must resolve within the project root
+  if (!resolvedDir.startsWith(projectRoot + path.sep) && resolvedDir !== projectRoot) {
+    throw new Error(
+      `Security: report outputDir "${outputDir}" resolves outside the project root. ` +
+      `Resolved to: ${resolvedDir}. Edit fortress.config.js to use a relative path within your project.`
+    );
+  }
+
   fs.mkdirSync(resolvedDir, { recursive: true });
 
   const timestamp = report.timestamp.replace(/[:.]/g, '-').replace('T', '_').replace('Z', '');

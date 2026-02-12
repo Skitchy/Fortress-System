@@ -7,6 +7,7 @@ const contentCheck = require('../checks/content-check');
 const securityCheck = require('../checks/security-check');
 const buildCheck = require('../checks/build-check');
 const { createResult } = require('../checks/base-check');
+const { validateCommand } = require('./command-validator');
 
 const CHECK_MODULES = {
   typescript: typescriptCheck,
@@ -54,6 +55,25 @@ function run(config) {
         score: 0,
       }));
       continue;
+    }
+
+    // Validate commands before execution (content check has no command)
+    if (name !== 'content' && checkConfig.command) {
+      const validation = validateCommand(checkConfig.command);
+      if (!validation.valid) {
+        results.push(createResult(name, {
+          passed: false,
+          errors: [
+            `Command blocked by security validator: ${validation.reason}`,
+            `Rejected command: ${checkConfig.command}`,
+            'Commands must not contain shell operators (;, &&, ||, |, $(), backticks, redirects).',
+            'Edit fortress.config.js to use a simple, single command.',
+          ],
+          duration: 0,
+          score: 0,
+        }));
+        continue;
+      }
     }
 
     results.push(mod.run(config, checkConfig));

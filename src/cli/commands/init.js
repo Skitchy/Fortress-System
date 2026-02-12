@@ -132,8 +132,19 @@ function generateConfig(detected) {
     filesCreated.push(`${c.green}${c.bold}Created CLAUDE.md${c.reset}`);
     filesCreated.push(`${c.green}${c.bold}Created .claude/settings.local.json${c.reset}`);
     filesCreated.push(`${c.green}${c.bold}Installed .claude/statusline-fortress.sh${c.reset}`);
+    const agents = claudeHelpers.installAgents(projectRoot);
+    for (const agent of agents) {
+      filesCreated.push(`${c.green}${c.bold}Installed .claude/agents/${agent}${c.reset}`);
+    }
   } catch {
     filesCreated.push(`${c.yellow}Claude Code integration skipped${c.reset} ${c.gray}(non-critical)${c.reset}`);
+  }
+
+  try {
+    claudeHelpers.installGitHook(projectRoot);
+    filesCreated.push(`${c.green}${c.bold}Installed .git/hooks/pre-commit${c.reset}`);
+  } catch {
+    filesCreated.push(`${c.yellow}Git hook installation skipped${c.reset} ${c.gray}(non-critical)${c.reset}`);
   }
 
   return filesCreated;

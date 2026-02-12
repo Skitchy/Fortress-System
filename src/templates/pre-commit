@@ -1,0 +1,21 @@
+#!/bin/sh
+# FORTRESS:START
+# Fortress System — pre-commit quality gate
+# Runs `fortress quick` and blocks the commit if checks fail.
+
+echo ""
+echo "Fortress: running pre-commit checks..."
+echo ""
+
+if ! npx fortress quick; then
+  echo ""
+  echo "Fortress: pre-commit checks failed. Commit blocked."
+  echo "Fix the issues above, then try again."
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo "Fortress: all checks passed."
+echo ""
+# FORTRESS:END

@@ -9,16 +9,46 @@ function run(config, checkConfig) {
   const errors = [];
   const warnings = [];
 
+  const MAX_PATTERN_LENGTH = 200;
   const patterns = (checkConfig.patterns || []).map(p => {
-    if (typeof p === 'string') return { regex: new RegExp(p, 'gi'), label: p };
-    if (p.regex && p.label) return { regex: new RegExp(p.regex, 'gi'), label: p.label };
-    return null;
+    try {
+      let source, label;
+      if (typeof p === 'string') {
+        source = p; label = p;
+      } else if (p.regex && p.label) {
+        source = p.regex; label = p.label;
+      } else {
+        return null;
+      }
+
+      // Reject excessively long patterns (ReDoS risk)
+      if (source.length > MAX_PATTERN_LENGTH) {
+        warnings.push(`Pattern "${label}" exceeds ${MAX_PATTERN_LENGTH} chars — skipped for safety`);
+        return null;
+      }
+
+      // Reject patterns with nested quantifiers (common ReDoS signature)
+      // e.g., (a+)+, (a*)*,  (a+)*  — any quantifier applied to a group containing a quantifier
+      if (/(\([^)]*[+*][^)]*\))[+*{]/.test(source)) {
+        warnings.push(`Pattern "${label}" contains nested quantifiers (ReDoS risk) — skipped`);
+        return null;
+      }
+
+      return { regex: new RegExp(source, 'gi'), label };
+    } catch (err) {
+      warnings.push(`Invalid regex pattern "${p.label || p}": ${err.message}`);
+      return null;
+    }
   }).filter(Boolean);
 
   if (patterns.length === 0) {
+    // Preserve any security warnings from pattern validation above
+    if (warnings.length === 0) {
+      warnings.push('No forbidden patterns configured - content check skipped');
+    }
     return createResult('Content Guard', { key: 'content',
       passed: true,
-      warnings: ['No forbidden patterns configured - content check skipped'],
+      warnings,
       duration: Date.now() - start,
       score: checkConfig.weight,
     });
