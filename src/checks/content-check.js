@@ -117,6 +117,8 @@ function collectFiles(dir, extensions, skipDirs) {
   }
   for (const entry of entries) {
     if (skipDirs.has(entry.name)) continue;
+    // Skip symlinks to prevent traversal outside the project root
+    if (entry.isSymbolicLink()) continue;
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       files.push(...collectFiles(fullPath, extensions, skipDirs));

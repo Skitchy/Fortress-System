@@ -1,7 +1,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
-const { createResult } = require('./base-check');
+const { createResult, safeEnv } = require('./base-check');
 
 function run(config, checkConfig) {
   const start = Date.now();
@@ -16,7 +16,7 @@ function run(config, checkConfig) {
       cwd: config.root,
       stdio: 'pipe',
       timeout: 300000,
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: safeEnv(),
     }).toString();
   } catch (err) {
     exitedClean = false;
@@ -28,8 +28,19 @@ function run(config, checkConfig) {
 
   if (!exitedClean && testCounts.total === 0) {
     errors.push('Test suite failed to run');
+    // Surface the actual error to help users diagnose the issue
+    const errorHint = extractErrorHint(output, command);
+    if (errorHint) {
+      errors.push(`  ${errorHint}`);
+    }
+    errors.push(`  Command: ${command}`);
   } else if (testCounts.failed > 0) {
     errors.push(`${testCounts.failed} test(s) failed`);
+    // Extract failing test names to help users find what broke
+    const failedNames = parseFailedTestNames(output);
+    for (const name of failedNames.slice(0, 5)) {
+      errors.push(`  FAIL: ${name}`);
+    }
   }
 
   const passed = errors.length === 0;
@@ -95,6 +106,57 @@ function parseTestOutput(output) {
   }
 
   return { passed: 0, failed: 0, total: 0 };
+}
+
+function parseFailedTestNames(output) {
+  const names = [];
+  const lines = output.split('\n');
+
+  // Node test runner: "not ok N - test name"
+  // Skip suite-level failures (followed by "subtestsFailed" in TAP YAML)
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(/not ok \d+ - (.+)/);
+    if (!match) continue;
+    // Look ahead in the next few lines for "subtestsFailed" which marks suites, not tests
+    const lookahead = lines.slice(i + 1, i + 8).join('\n');
+    if (lookahead.includes('subtestsFailed')) continue;
+    names.push(match[1].trim());
+  }
+  if (names.length > 0) return names;
+
+  // Jest: "FAIL path/to/test" or "● test name"
+  const jestMatches = output.matchAll(/●\s+(.+)/g);
+  for (const match of jestMatches) {
+    names.push(match[1].trim());
+  }
+  if (names.length > 0) return names;
+
+  // Vitest: "FAIL  test name" or "× test name"
+  const vitestMatches = output.matchAll(/[×✕]\s+(.+)/g);
+  for (const match of vitestMatches) {
+    names.push(match[1].trim());
+  }
+
+  return names;
+}
+
+function extractErrorHint(output, command) {
+  // Look for common error patterns in the output
+  if (/not found|ENOENT|could not determine executable/i.test(output)) {
+    return 'Hint: The test tool may not be installed. Check the command in fortress.config.js';
+  }
+  if (/bad option|unknown option|unrecognized/i.test(output)) {
+    return 'Hint: The command has an invalid option. Check for typos in fortress.config.js';
+  }
+  // Return the first non-empty stderr-like line as a generic hint
+  const lines = output.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('TAP') && trimmed.length < 200) {
+      return trimmed;
+    }
+  }
+  return null;
 }
 
 module.exports = { run };

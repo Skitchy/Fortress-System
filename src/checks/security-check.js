@@ -1,7 +1,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
-const { createResult } = require('./base-check');
+const { createResult, safeEnv } = require('./base-check');
 
 function run(config, checkConfig) {
   const start = Date.now();
@@ -15,7 +15,7 @@ function run(config, checkConfig) {
       cwd: config.root,
       stdio: 'pipe',
       timeout: 120000,
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: safeEnv(),
     }).toString();
   } catch (err) {
     // npm audit exits non-zero when vulnerabilities found - that's expected

@@ -77,6 +77,21 @@ function getInitCommand(pm) {
     }
   }
 
+  // Ensure .gitignore exists with sensible defaults
+  const gitignorePath = path.join(projectRoot, '.gitignore');
+  if (!fs.existsSync(gitignorePath)) {
+    fs.writeFileSync(gitignorePath, [
+      'node_modules/',
+      'dist/',
+      'coverage/',
+      'fortress-reports/',
+      '.env',
+      '.env.local',
+      '',
+    ].join('\n'));
+    console.log(`  ${c.green}       Created .gitignore${c.reset}`);
+  }
+
   // Step 3: Install fortress-system
   // --local flag: install from a local path (for development/testing)
   const args = process.argv.slice(2);

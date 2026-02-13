@@ -50,6 +50,11 @@ function validateCommand(command) {
     return { valid: false, reason: 'Command is empty' };
   }
 
+  // Reject multi-line commands (newlines act as command separators in shell)
+  if (trimmed.includes('\n') || trimmed.includes('\r')) {
+    return { valid: false, reason: 'Command contains newline (multi-command injection)' };
+  }
+
   // Check for dangerous shell patterns
   for (const pattern of DANGEROUS_PATTERNS) {
     if (pattern.test(trimmed)) {

@@ -1,7 +1,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
-const { createResult } = require('./base-check');
+const { createResult, safeEnv } = require('./base-check');
 
 function run(config, checkConfig) {
   const start = Date.now();
@@ -13,7 +13,7 @@ function run(config, checkConfig) {
       cwd: config.root,
       stdio: 'pipe',
       timeout: 300000, // 5 minutes for builds
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: safeEnv(),
     });
   } catch (err) {
     const output = ((err.stdout || '') + '' + (err.stderr || '')).toString();
@@ -32,6 +32,10 @@ function run(config, checkConfig) {
       }
     } else {
       errors.push('Build failed');
+      errors.push(`  Command: ${command}`);
+      if (/not found|ENOENT|could not determine executable/i.test(output)) {
+        errors.push('  Hint: The build tool may not be installed. Check your package.json scripts.');
+      }
     }
   }
 

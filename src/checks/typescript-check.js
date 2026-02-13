@@ -1,7 +1,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
-const { createResult } = require('./base-check');
+const { createResult, safeEnv } = require('./base-check');
 
 function run(config, checkConfig) {
   const start = Date.now();
@@ -13,7 +13,7 @@ function run(config, checkConfig) {
       cwd: config.root,
       stdio: 'pipe',
       timeout: 120000,
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: safeEnv(),
     });
   } catch (err) {
     const output = ((err.stdout || '') + '' + (err.stderr || '')).toString();
@@ -27,6 +27,10 @@ function run(config, checkConfig) {
     }
     if (errors.length === 0) {
       errors.push('TypeScript compilation failed');
+      errors.push(`  Command: ${command}`);
+      if (/not found|ENOENT|could not determine executable/i.test(output)) {
+        errors.push('  Hint: TypeScript may not be installed. Try: npm install --save-dev typescript');
+      }
     }
   }
 

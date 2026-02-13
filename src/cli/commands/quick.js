@@ -77,7 +77,19 @@ console.log('\n' + '\u2500'.repeat(50));
 const scoreColor = scoreResult.score >= 95 ? c.green : scoreResult.score >= 80 ? c.yellow : c.red;
 console.log(`${c.bold}  Score: ${scoreColor}${scoreResult.score}/100${c.reset}  ${c.gray}(${totalSeconds}s)${c.reset}`);
 
-if (allPassed) {
+// Check if no checks were enabled
+const enabledCount = results.filter(r => {
+  const cfg = config.checks[r.key];
+  return cfg && cfg.enabled;
+}).length;
+
+if (enabledCount === 0) {
+  console.log(`  ${c.yellow}${c.bold}No checks are enabled.${c.reset}`);
+  console.log(`  ${c.gray}Fortress doesn't have anything to validate yet.${c.reset}\n`);
+  console.log(`  ${c.bold}What to do next:${c.reset}`);
+  console.log(`  ${c.gray}•${c.reset} Run ${c.bold}fortress init --force${c.reset} to configure checks for your project`);
+  console.log(`  ${c.gray}•${c.reset} Or edit ${c.bold}fortress.config.js${c.reset} and set ${c.bold}enabled: true${c.reset} on the checks you want\n`);
+} else if (allPassed) {
   console.log(`  ${c.green}${c.bold}All checks passed.${c.reset}\n`);
 } else {
   // Check if failures look like missing tooling rather than real code issues

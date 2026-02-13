@@ -1,7 +1,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
-const { createResult } = require('./base-check');
+const { createResult, safeEnv } = require('./base-check');
 
 function run(config, checkConfig) {
   const start = Date.now();
@@ -15,7 +15,7 @@ function run(config, checkConfig) {
       cwd: config.root,
       stdio: 'pipe',
       timeout: 120000,
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: safeEnv(),
     }).toString();
   } catch (err) {
     output = ((err.stdout || '') + '' + (err.stderr || '')).toString();
@@ -30,12 +30,23 @@ function run(config, checkConfig) {
     }
     if (errors.length === 0) {
       errors.push('Lint check failed');
+      errors.push(`  Command: ${command}`);
+      // Check for common "not found" patterns
+      if (/not found|ENOENT|could not determine executable/i.test(output)) {
+        errors.push('  Hint: The lint tool may not be installed. Try: npm install --save-dev eslint');
+      }
     }
   }
 
-  // Parse warning count from output
-  const warningMatch = output.match(/(\d+)\s+warning/);
-  const warningCount = warningMatch ? parseInt(warningMatch[1], 10) : 0;
+  // Parse warning count from linter summary line
+  // ESLint: "✖ 3 problems (1 error, 2 warnings)" or "(0 errors, 1 warning)"
+  // Biome: similar summary format
+  // Use the parenthesized summary to avoid matching detail lines like "1:7  warning  ..."
+  let warningCount = 0;
+  const summaryMatch = output.match(/(\d+)\s+warnings?\)/);
+  if (summaryMatch) {
+    warningCount = parseInt(summaryMatch[1], 10);
+  }
   if (warningCount > 0) {
     warnings.push(`${warningCount} lint warning(s)`);
   }

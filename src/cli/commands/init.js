@@ -81,7 +81,7 @@ function getTestCommand(det) {
     case 'vitest': return 'npx vitest run';
     case 'jest': return 'npx jest --passWithNoTests';
     case 'mocha': return 'npx mocha';
-    case 'node:test': return 'node --test';
+    case 'node:test': return 'node --test tests/';
     default: return '';
   }
 }
@@ -259,6 +259,19 @@ async function runWizard(detected) {
     console.log(`  Test Framework: ${formatDetected(detected.testFramework)}`);
     console.log(`  Linter:         ${formatDetected(detected.linter)}`);
     console.log(`  Build Command:  ${formatDetected(detected.buildCommand)}`);
+
+    // Check if most things went undetected (empty/new project)
+    const detectedCount = [detected.framework, detected.testFramework, detected.linter, detected.buildCommand].filter(Boolean).length;
+    if (detectedCount === 0) {
+      console.log(`\n  ${c.yellow}${c.bold}Looks like a fresh project!${c.reset}`);
+      console.log(`  ${c.gray}That's totally normal — most checks are disabled until you add tooling.${c.reset}`);
+      console.log(`\n  ${c.bold}Suggested next steps:${c.reset}`);
+      console.log(`  ${c.gray}•${c.reset} Add a test framework: ${c.bold}npm install --save-dev vitest${c.reset} ${c.gray}(or jest, mocha)${c.reset}`);
+      console.log(`  ${c.gray}•${c.reset} Add a linter:         ${c.bold}npm install --save-dev eslint${c.reset} ${c.gray}(or biome)${c.reset}`);
+      console.log(`  ${c.gray}•${c.reset} Add TypeScript:       ${c.bold}npm install --save-dev typescript${c.reset}`);
+      console.log(`  ${c.gray}•${c.reset} Then re-run:          ${c.bold}fortress init --force${c.reset} to pick up the new tools`);
+    }
+
     finalConfig = detected;
   } else {
     // Interactive wizard

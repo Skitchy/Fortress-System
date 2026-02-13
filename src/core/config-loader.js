@@ -18,7 +18,9 @@ function load(projectRoot) {
     try {
       userConfig = require(configPath);
     } catch (err) {
-      console.error(`Error loading ${CONFIG_FILENAME}: ${err.message}`);
+      console.error(`\nError loading ${CONFIG_FILENAME}: ${err.message}`);
+      console.error(`\nThis usually means there's a syntax error in your config file.`);
+      console.error(`To regenerate it, run: npx fortress init --force\n`);
       process.exit(1);
     }
   }
@@ -113,7 +115,7 @@ function getTestCommand(detected) {
     case 'vitest': return 'npx vitest run';
     case 'jest': return 'npx jest --passWithNoTests';
     case 'mocha': return 'npx mocha';
-    case 'node:test': return 'node --test';
+    case 'node:test': return 'node --test tests/';
     default: return null;
   }
 }
