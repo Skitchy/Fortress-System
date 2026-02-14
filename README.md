@@ -1,6 +1,8 @@
 # Fortress System
 
 [![npm version](https://img.shields.io/npm/v/fortress-system?color=22d3ee&label=npm)](https://www.npmjs.com/package/fortress-system)
+[![npm downloads](https://img.shields.io/npm/dt/fortress-system?color=4ade80&label=downloads)](https://www.npmjs.com/package/fortress-system)
+[![GitHub stars](https://img.shields.io/github/stars/Skitchy/Fortress-System?color=a78bfa&label=stars)](https://github.com/Skitchy/Fortress-System)
 [![license](https://img.shields.io/badge/license-MIT-a78bfa)](https://github.com/Skitchy/Fortress-System/blob/main/LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D18-4ade80)](https://nodejs.org)
 [![zero deps](https://img.shields.io/badge/dependencies-0-22d3ee)](https://www.npmjs.com/package/fortress-system)
