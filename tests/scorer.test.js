@@ -132,7 +132,7 @@ describe('scorer', () => {
     assert.equal(result.deployReady, false);
   });
 
-  it('returns 100 when no checks are enabled', () => {
+  it('returns 0 with noChecksEnabled flag when no checks are enabled', () => {
     const results = [];
     const config = {
       checks: {
@@ -141,6 +141,9 @@ describe('scorer', () => {
       scoring: { deployThreshold: 95 },
     };
     const result = calculate(results, config);
-    assert.equal(result.score, 100);
+    assert.equal(result.score, 0);
+    assert.equal(result.maxScore, 0);
+    assert.equal(result.deployReady, false);
+    assert.equal(result.noChecksEnabled, true);
   });
 });

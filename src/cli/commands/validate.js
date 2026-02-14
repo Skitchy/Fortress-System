@@ -3,7 +3,7 @@
 const configLoader = require('../../core/config-loader');
 const runner = require('../../core/runner');
 const scorer = require('../../core/scorer');
-const { parseFlags, createColors } = require('../helpers');
+const { parseFlags, createColors, renderCheckResults, renderNoChecksEnabled } = require('../helpers');
 
 const flags = parseFlags();
 const c = createColors(flags);
@@ -35,59 +35,23 @@ if (flags.isJSON) {
 console.log(`\n${c.bold}${c.blue}Fortress Validate${c.reset}`);
 console.log(`${c.gray}Running full validation pipeline...${c.reset}\n`);
 
-let allPassed = true;
-for (const result of results) {
-  const checkConfig = config.checks[result.key];
-  const isEnabled = checkConfig && checkConfig.enabled;
-
-  if (!isEnabled) {
-    console.log(`  ${c.gray}[SKIP]${c.reset} ${result.name} ${c.gray}(disabled)${c.reset}`);
-    continue;
-  }
-
-  const icon = result.passed ? `${c.green}[PASS]` : `${c.red}[FAIL]`;
-  const duration = result.duration > 0 ? ` ${c.gray}(${(result.duration / 1000).toFixed(1)}s)${c.reset}` : '';
-
-  console.log(`  ${icon}${c.reset} ${result.name}${duration}`);
-
-  if (!result.passed) {
-    allPassed = false;
-    for (const err of result.errors.slice(0, 5)) {
-      console.log(`         ${c.red}${err}${c.reset}`);
-    }
-    if (result.errors.length > 5) {
-      console.log(`         ${c.gray}... and ${result.errors.length - 5} more${c.reset}`);
-    }
-  }
-
-  for (const warn of result.warnings) {
-    console.log(`         ${c.yellow}${warn}${c.reset}`);
-  }
-}
+const { allPassed, enabledCount } = renderCheckResults(results, config, c);
 
 const totalSeconds = (totalDuration / 1000).toFixed(1);
 
 console.log('\n' + '\u2500'.repeat(50));
 
-const scoreColor = scoreResult.score >= 95 ? c.green : scoreResult.score >= 80 ? c.yellow : c.red;
-console.log(`${c.bold}  Score: ${scoreColor}${scoreResult.score}/100${c.reset}  ${c.gray}(${totalSeconds}s)${c.reset}`);
-
-// Check if no checks were enabled
-const enabledCount = results.filter(r => {
-  const cfg = config.checks[r.key];
-  return cfg && cfg.enabled;
-}).length;
-
 if (enabledCount === 0) {
-  console.log(`  ${c.yellow}${c.bold}No checks are enabled.${c.reset}`);
-  console.log(`  ${c.gray}Fortress doesn't have anything to validate yet.${c.reset}\n`);
-  console.log(`  ${c.bold}What to do next:${c.reset}`);
-  console.log(`  ${c.gray}•${c.reset} Run ${c.bold}fortress init --force${c.reset} to configure checks for your project`);
-  console.log(`  ${c.gray}•${c.reset} Or edit ${c.bold}fortress.config.js${c.reset} and set ${c.bold}enabled: true${c.reset} on the checks you want\n`);
-} else if (allPassed) {
-  console.log(`  ${c.green}${c.bold}All checks passed.${c.reset}\n`);
+  renderNoChecksEnabled(c);
 } else {
-  console.log(`  ${c.red}${c.bold}Validation failed.${c.reset}\n`);
+  const scoreColor = scoreResult.score >= 95 ? c.green : scoreResult.score >= 80 ? c.yellow : c.red;
+  console.log(`${c.bold}  Score: ${scoreColor}${scoreResult.score}/100${c.reset}  ${c.gray}(${totalSeconds}s)${c.reset}`);
+
+  if (allPassed) {
+    console.log(`  ${c.green}${c.bold}All checks passed.${c.reset}\n`);
+  } else {
+    console.log(`  ${c.red}${c.bold}Validation failed.${c.reset}\n`);
+  }
 }
 
 process.exit(allPassed ? 0 : 1);

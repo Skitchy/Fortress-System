@@ -44,13 +44,20 @@ function mergeFortressSection(existing, newSection) {
   const startIdx = existing.indexOf(FORTRESS_START);
   const endIdx = existing.indexOf(FORTRESS_END);
 
-  if (startIdx !== -1 && endIdx !== -1) {
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    // Both markers found in correct order — replace the section
     const before = existing.substring(0, startIdx);
     const after = existing.substring(endIdx + FORTRESS_END.length);
     return before + newSection + after;
   }
 
-  // No existing section - append
+  if (startIdx !== -1 && (endIdx === -1 || endIdx <= startIdx)) {
+    // Malformed: START found but END missing or before START — replace from START to end of file
+    const before = existing.substring(0, startIdx);
+    return before.trimEnd() + '\n\n' + newSection + '\n';
+  }
+
+  // No existing section — append
   return existing.trimEnd() + '\n\n' + newSection + '\n';
 }
 

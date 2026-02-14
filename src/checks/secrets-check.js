@@ -21,7 +21,8 @@ const BUILT_IN_PATTERNS = [
   { regex: 'rk_live_[A-Za-z0-9]{24,}', label: 'Stripe Restricted Key' },
 
   // OpenAI
-  { regex: 'sk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}', label: 'OpenAI API Key' },
+  { regex: 'sk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}', label: 'OpenAI API Key (legacy)' },
+  { regex: 'sk-proj-[A-Za-z0-9_-]{20,}', label: 'OpenAI Project API Key' },
 
   // Slack
   { regex: 'xoxb-[0-9]{10,}-[0-9]{10,}-[A-Za-z0-9]{24}', label: 'Slack Bot Token' },
@@ -142,7 +143,7 @@ function run(config, checkConfig) {
 
           // Mask the matched secret for safe display
           const masked = maskSecret(match[0]);
-          errors.push(`${relative}:${i + 1} - ${pattern.label} (matched: "${masked}")`);
+          errors.push(`${relative}:${i + 1} - ${pattern.label} (matched: ${masked})`);
         }
       }
     }
@@ -164,20 +165,37 @@ function run(config, checkConfig) {
 
 /**
  * Mask a secret value for safe display — show first 4 and last 2 chars.
+ * Strips trailing/leading quotes to avoid doubled-up quotes in output.
  */
 function maskSecret(value) {
-  if (value.length <= 8) return '***';
-  return value.slice(0, 4) + '***' + value.slice(-2);
+  // Strip any surrounding quotes that regex patterns may capture
+  let cleaned = value.replace(/^["']+|["']+$/g, '');
+  if (cleaned.length <= 8) return '***';
+  return cleaned.slice(0, 4) + '***' + cleaned.slice(-2);
 }
 
 /**
  * Detect regex patterns likely to cause catastrophic backtracking (ReDoS).
  */
 function isReDoSRisk(source) {
+  // Nested quantifiers: (a+)+, (a*)+, (a+)*, (a+){2,}
   if (/(\([^)]*[+*][^)]*\))[+*{]/.test(source)) return true;
+
+  // Quantified groups with alternation: (a|a)*, (a|b)+ where branches can match same input
   if (/\([^)]*\|[^)]*\)[+*{]/.test(source)) return true;
+
+  // Quantifier applied to a group that itself is quantified: (.+)+, (\w+)+
   if (/\([^)]*[+*}][^)]*\)[+*{]/.test(source)) return true;
+
+  // Back-references with quantifiers: (a+)\1+ (can cause exponential matching)
   if (/\\[1-9][+*{]/.test(source)) return true;
+
+  // Dot-star or dot-plus inside quantified group: (.*)+, (.+)+
+  if (/\([^)]*\.\s*[+*][^)]*\)[+*{]/.test(source)) return true;
+
+  // Lookahead/lookbehind with quantifiers: (?=a+)+, (?<=a+)+
+  if (/\(\?[=!<][^)]*[+*][^)]*\)[+*{]/.test(source)) return true;
+
   return false;
 }
 

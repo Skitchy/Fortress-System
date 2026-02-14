@@ -171,6 +171,25 @@ function generateConfig(detected, originalDetected) {
     filesCreated.push(`${c.yellow}Git hook installation skipped${c.reset} ${c.gray}(non-critical)${c.reset}`);
   }
 
+  // Ensure fortress-reports/ is in .gitignore to prevent accidental commit of reports
+  try {
+    const gitignorePath = path.join(projectRoot, '.gitignore');
+    let gitignore = '';
+    if (fs.existsSync(gitignorePath)) {
+      gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+    }
+    const entries = ['fortress-reports/'];
+    const missing_entries = entries.filter(e => !gitignore.split('\n').some(line => line.trim() === e));
+    if (missing_entries.length > 0) {
+      const addition = (gitignore && !gitignore.endsWith('\n') ? '\n' : '') +
+        '\n# Fortress System reports\n' + missing_entries.join('\n') + '\n';
+      fs.appendFileSync(gitignorePath, addition);
+      filesCreated.push(`${c.green}${c.bold}Updated .gitignore${c.reset} ${c.gray}(added fortress-reports/)${c.reset}`);
+    }
+  } catch {
+    // Non-critical — don't block init
+  }
+
   return { filesCreated, missing };
 }
 

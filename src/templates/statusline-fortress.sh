@@ -33,10 +33,12 @@ fi
 
 # Time since last check
 mod_time=$(stat -f %m "$latest" 2>/dev/null || stat -c %Y "$latest" 2>/dev/null || echo "")
-if [ -n "$mod_time" ]; then
+if [ -n "$mod_time" ] && [ "$mod_time" -gt 0 ] 2>/dev/null; then
   now=$(date +%s)
   diff=$((now - mod_time))
-  if [ "$diff" -lt 60 ]; then
+  if [ "$diff" -lt 0 ]; then
+    age="just now"
+  elif [ "$diff" -lt 60 ]; then
     age="${diff}s ago"
   elif [ "$diff" -lt 3600 ]; then
     age="$((diff / 60))m ago"
@@ -47,8 +49,8 @@ else
   age="unknown"
 fi
 
-# Build output
-score_int=${score%.*}
+# Build output — round to nearest integer
+score_int=$(printf "%.0f" "$score" 2>/dev/null || echo "${score%.*}")
 if [ "$deploy_ready" = "true" ]; then
   status="DEPLOY READY"
 else

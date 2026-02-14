@@ -11,7 +11,7 @@ function calculate(results, config) {
   const totalWeight = enabledChecks.reduce((sum, [, c]) => sum + (c.weight || 0), 0);
 
   if (totalWeight === 0) {
-    return { score: 100, maxScore: 100, checks: results };
+    return { score: 0, maxScore: 0, rawScore: 0, totalWeight: 0, deployReady: false, noChecksEnabled: true, checks: results };
   }
 
   // Sum raw scores from enabled checks

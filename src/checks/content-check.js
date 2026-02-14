@@ -109,7 +109,6 @@ function isReDoSRisk(source) {
   if (/(\([^)]*[+*][^)]*\))[+*{]/.test(source)) return true;
 
   // Quantified groups with alternation: (a|a)*, (a|b)+ where branches can match same input
-  // This catches (a|a)*, (x|x)+, and similar patterns
   if (/\([^)]*\|[^)]*\)[+*{]/.test(source)) return true;
 
   // Quantifier applied to a group that itself is quantified: (.+)+, (\w+)+
@@ -117,6 +116,12 @@ function isReDoSRisk(source) {
 
   // Back-references with quantifiers: (a+)\1+ (can cause exponential matching)
   if (/\\[1-9][+*{]/.test(source)) return true;
+
+  // Dot-star or dot-plus inside quantified group: (.*)+, (.+)+
+  if (/\([^)]*\.\s*[+*][^)]*\)[+*{]/.test(source)) return true;
+
+  // Lookahead/lookbehind with quantifiers: (?=a+)+, (?<=a+)+
+  if (/\(\?[=!<][^)]*[+*][^)]*\)[+*{]/.test(source)) return true;
 
   return false;
 }

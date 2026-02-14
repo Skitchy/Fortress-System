@@ -9,7 +9,8 @@ const { execFileSync } = require('child_process');
  */
 function isClaudeAvailable() {
   try {
-    execFileSync('which', ['claude'], { stdio: 'pipe' });
+    const cmd = process.platform === 'win32' ? 'where' : 'which';
+    execFileSync(cmd, ['claude'], { stdio: 'pipe' });
     return true;
   } catch {
     return false;

@@ -15,9 +15,18 @@ const config = configLoader.load(projectRoot);
 const args = process.argv.slice(2);
 let limit = 10;
 const limitIdx = args.indexOf('--limit');
-if (limitIdx !== -1 && args[limitIdx + 1]) {
-  const parsed = parseInt(args[limitIdx + 1], 10);
-  if (!isNaN(parsed) && parsed > 0) limit = parsed;
+if (limitIdx !== -1) {
+  const nextArg = args[limitIdx + 1];
+  if (!nextArg || nextArg.startsWith('--')) {
+    console.error('Error: --limit requires a numeric value (e.g., --limit 20)');
+    process.exit(1);
+  }
+  const parsed = parseInt(nextArg, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    console.error(`Error: --limit value must be a positive number, got "${nextArg}"`);
+    process.exit(1);
+  }
+  limit = parsed;
 }
 
 const outputDir = config.report?.outputDir || './fortress-reports/';

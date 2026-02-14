@@ -171,10 +171,14 @@ const report = {
   ...reviewResults,
 };
 
+// Determine if any agent failed
+const anyAgentFailed = (reviewResults.security && !reviewResults.security.success) ||
+  (reviewResults.codeReview && !reviewResults.codeReview.success);
+
 // JSON mode
 if (flags.isJSON) {
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
-  process.exit(0);
+  process.exit(anyAgentFailed ? 1 : 0);
 }
 
 // Save to file
@@ -192,4 +196,4 @@ try {
   console.error(`\n  ${c.red}Failed to save review:${c.reset} ${err.message}\n`);
 }
 
-process.exit(0);
+process.exit(anyAgentFailed ? 1 : 0);

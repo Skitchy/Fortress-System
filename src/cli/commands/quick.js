@@ -3,7 +3,7 @@
 const configLoader = require('../../core/config-loader');
 const runner = require('../../core/runner');
 const scorer = require('../../core/scorer');
-const { parseFlags, createColors } = require('../helpers');
+const { parseFlags, createColors, renderCheckResults, renderNoChecksEnabled } = require('../helpers');
 
 const flags = parseFlags();
 const c = createColors(flags);
@@ -11,9 +11,16 @@ const c = createColors(flags);
 const projectRoot = process.cwd();
 const startTime = Date.now();
 
-const config = configLoader.load(projectRoot);
+const loadedConfig = configLoader.load(projectRoot);
 
 // Quick mode: skip security and build checks (they're slow)
+// Clone checks so we don't mutate the original config
+const config = {
+  ...loadedConfig,
+  checks: Object.fromEntries(
+    Object.entries(loadedConfig.checks).map(([key, val]) => [key, { ...val }])
+  ),
+};
 if (config.checks.security) config.checks.security.enabled = false;
 if (config.checks.build) config.checks.build.enabled = false;
 
@@ -40,78 +47,44 @@ if (flags.isJSON) {
 console.log(`\n${c.bold}${c.blue}Fortress Quick Validation${c.reset}`);
 console.log(`${c.gray}Running enabled checks...${c.reset}\n`);
 
-let allPassed = true;
-for (const result of results) {
-  const checkConfig = config.checks[result.key];
-  const isEnabled = checkConfig && checkConfig.enabled;
-
-  if (!isEnabled) {
-    console.log(`  ${c.gray}[SKIP]${c.reset} ${result.name} ${c.gray}(disabled)${c.reset}`);
-    continue;
-  }
-
-  const icon = result.passed ? `${c.green}[PASS]` : `${c.red}[FAIL]`;
-  const duration = result.duration > 0 ? ` ${c.gray}(${(result.duration / 1000).toFixed(1)}s)${c.reset}` : '';
-
-  console.log(`  ${icon}${c.reset} ${result.name}${duration}`);
-
-  if (!result.passed) {
-    allPassed = false;
-    for (const err of result.errors.slice(0, 5)) {
-      console.log(`         ${c.red}${err}${c.reset}`);
-    }
-    if (result.errors.length > 5) {
-      console.log(`         ${c.gray}... and ${result.errors.length - 5} more${c.reset}`);
-    }
-  }
-
-  for (const warn of result.warnings) {
-    console.log(`         ${c.yellow}${warn}${c.reset}`);
-  }
-}
+const { allPassed, enabledCount } = renderCheckResults(results, config, c);
 
 const totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
 
 console.log('\n' + '\u2500'.repeat(50));
 
-const scoreColor = scoreResult.score >= 95 ? c.green : scoreResult.score >= 80 ? c.yellow : c.red;
-console.log(`${c.bold}  Score: ${scoreColor}${scoreResult.score}/100${c.reset}  ${c.gray}(${totalSeconds}s)${c.reset}`);
-
-// Check if no checks were enabled
-const enabledCount = results.filter(r => {
-  const cfg = config.checks[r.key];
-  return cfg && cfg.enabled;
-}).length;
-
 if (enabledCount === 0) {
-  console.log(`  ${c.yellow}${c.bold}No checks are enabled.${c.reset}`);
-  console.log(`  ${c.gray}Fortress doesn't have anything to validate yet.${c.reset}\n`);
-  console.log(`  ${c.bold}What to do next:${c.reset}`);
-  console.log(`  ${c.gray}•${c.reset} Run ${c.bold}fortress init --force${c.reset} to configure checks for your project`);
-  console.log(`  ${c.gray}•${c.reset} Or edit ${c.bold}fortress.config.js${c.reset} and set ${c.bold}enabled: true${c.reset} on the checks you want\n`);
-} else if (allPassed) {
-  console.log(`  ${c.green}${c.bold}All checks passed.${c.reset}\n`);
+  renderNoChecksEnabled(c);
 } else {
-  // Check if failures look like missing tooling rather than real code issues
-  const setupErrors = ['TypeScript compilation failed', 'Lint check failed'];
-  const failedResults = results.filter(r => {
-    const cfg = config.checks[r.key];
-    return cfg && cfg.enabled && !r.passed;
-  });
-  const allSetupIssues = failedResults.length > 0 && failedResults.every(r =>
-    r.errors.every(e => setupErrors.includes(e))
-  );
+  const scoreColor = scoreResult.score >= 95 ? c.green : scoreResult.score >= 80 ? c.yellow : c.red;
+  console.log(`${c.bold}  Score: ${scoreColor}${scoreResult.score}/100${c.reset}  ${c.gray}(${totalSeconds}s)${c.reset}`);
 
-  if (allSetupIssues) {
-    console.log(`  ${c.yellow}${c.bold}Some checks failed — but that's expected.${c.reset}`);
-    console.log(`  ${c.gray}You selected tools that aren't set up in this project yet.${c.reset}`);
-    console.log(`  ${c.gray}This is totally normal for a new project.${c.reset}\n`);
-    console.log(`  ${c.bold}What to do next:${c.reset}`);
-    console.log(`  ${c.gray}•${c.reset} Open Claude Code and ask it to set up the tools for you`);
-    console.log(`  ${c.gray}•${c.reset} Or re-run ${c.bold}fortress init --force${c.reset} and pick only what's installed`);
-    console.log(`  ${c.gray}•${c.reset} Or edit ${c.bold}fortress.config.js${c.reset} to disable checks you're not ready for\n`);
+  if (allPassed) {
+    console.log(`  ${c.green}${c.bold}All checks passed.${c.reset}\n`);
   } else {
-    console.log(`  ${c.red}${c.bold}Some checks failed.${c.reset}\n`);
+    // Check if failures look like missing tooling rather than real code issues
+    const setupErrorKeys = new Set(['typescript', 'lint']);
+    const failedResults = results.filter(r => {
+      const cfg = config.checks[r.key];
+      return cfg && cfg.enabled && !r.passed;
+    });
+    const allSetupIssues = failedResults.length > 0 && failedResults.every(r =>
+      setupErrorKeys.has(r.key) && r.errors.some(e =>
+        /not found|ENOENT|could not determine executable|compilation failed|check failed/i.test(e)
+      )
+    );
+
+    if (allSetupIssues) {
+      console.log(`  ${c.yellow}${c.bold}Some checks failed — but that's expected.${c.reset}`);
+      console.log(`  ${c.gray}You selected tools that aren't set up in this project yet.${c.reset}`);
+      console.log(`  ${c.gray}This is totally normal for a new project.${c.reset}\n`);
+      console.log(`  ${c.bold}What to do next:${c.reset}`);
+      console.log(`  ${c.gray}•${c.reset} Open Claude Code and ask it to set up the tools for you`);
+      console.log(`  ${c.gray}•${c.reset} Or re-run ${c.bold}fortress init --force${c.reset} and pick only what's installed`);
+      console.log(`  ${c.gray}•${c.reset} Or edit ${c.bold}fortress.config.js${c.reset} to disable checks you're not ready for\n`);
+    } else {
+      console.log(`  ${c.red}${c.bold}Some checks failed.${c.reset}\n`);
+    }
   }
 }
 
