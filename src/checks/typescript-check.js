@@ -17,6 +17,18 @@ function run(config, checkConfig) {
     });
   } catch (err) {
     const output = ((err.stdout || '') + '' + (err.stderr || '')).toString();
+
+    // TS18003: "No inputs were found" — no .ts files exist yet, not a real error
+    if (/TS18003/.test(output)) {
+      const duration = Date.now() - start;
+      return createResult('TypeScript', {
+        passed: true,
+        warnings: ['No TypeScript files found yet — this check will activate when you add .ts files'],
+        duration,
+        score: checkConfig.weight,
+      });
+    }
+
     // Extract error lines (format: file(line,col): error TSxxxx: message)
     const lines = output.split('\n').filter(l => l.includes('error TS'));
     for (const line of lines.slice(0, 20)) {

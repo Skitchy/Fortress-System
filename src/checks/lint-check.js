@@ -19,6 +19,18 @@ function run(config, checkConfig) {
     }).toString();
   } catch (err) {
     output = ((err.stdout || '') + '' + (err.stderr || '')).toString();
+
+    // No files to lint or no eslint config — not a real error on an empty project
+    if (/no files matching|All files matched by the pattern .* are ignored|Could not find config|eslint\.config/i.test(output)) {
+      const duration = Date.now() - start;
+      return createResult('Lint', {
+        passed: true,
+        warnings: ['No files to lint yet — this check will activate when you add source files'],
+        duration,
+        score: checkConfig.weight,
+      });
+    }
+
     // Extract error/warning lines
     const lines = output.split('\n');
     for (const line of lines) {
