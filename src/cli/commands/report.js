@@ -92,7 +92,11 @@ if (scoreResult.deployReady) {
 
 // Save JSON report
 const outputDir = config.report?.outputDir || './fortress-reports/';
-const savedPath = reporter.saveReport(report, outputDir);
-console.log(`\n  ${c.gray}Report saved: ${savedPath}${c.reset}\n`);
+try {
+  const savedPath = reporter.saveReport(report, outputDir);
+  console.log(`\n  ${c.gray}Report saved: ${savedPath}${c.reset}\n`);
+} catch (err) {
+  console.error(`\n  ${c.red}${c.bold}Failed to save report:${c.reset} ${err.message}\n`);
+}
 
 process.exit(allPassed ? 0 : 1);

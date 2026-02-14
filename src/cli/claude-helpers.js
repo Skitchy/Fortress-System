@@ -74,9 +74,13 @@ function updateClaudeSettings(projectRoot, options = {}) {
     }
   }
 
-  // Ensure permissions array exists
-  if (!Array.isArray(settings.permissions)) {
-    settings.permissions = [];
+  // Ensure permissions object exists with allow array
+  // Claude Code expects { allow: [...], deny: [...] }, not a flat array
+  if (!settings.permissions || typeof settings.permissions !== 'object' || Array.isArray(settings.permissions)) {
+    settings.permissions = { allow: [] };
+  }
+  if (!Array.isArray(settings.permissions.allow)) {
+    settings.permissions.allow = [];
   }
 
   // Fortress commands to allow
@@ -89,11 +93,15 @@ function updateClaudeSettings(projectRoot, options = {}) {
     'Bash(npx fortress validate)',
     'Bash(npx fortress report)',
     'Bash(npx fortress deploy)',
+    'Bash(fortress trend)',
+    'Bash(fortress review)',
+    'Bash(npx fortress trend)',
+    'Bash(npx fortress review)',
   ];
 
   for (const perm of fortressPerms) {
-    if (!settings.permissions.includes(perm)) {
-      settings.permissions.push(perm);
+    if (!settings.permissions.allow.includes(perm)) {
+      settings.permissions.allow.push(perm);
     }
   }
 

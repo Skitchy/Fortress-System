@@ -27,10 +27,9 @@ function run(config, checkConfig) {
         return null;
       }
 
-      // Reject patterns with nested quantifiers (common ReDoS signature)
-      // e.g., (a+)+, (a*)*,  (a+)*  — any quantifier applied to a group containing a quantifier
-      if (/(\([^)]*[+*][^)]*\))[+*{]/.test(source)) {
-        warnings.push(`Pattern "${label}" contains nested quantifiers (ReDoS risk) — skipped`);
+      // Reject patterns likely to cause ReDoS (catastrophic backtracking)
+      if (isReDoSRisk(source)) {
+        warnings.push(`Pattern "${label}" has ReDoS risk (dangerous backtracking) — skipped`);
         return null;
       }
 
@@ -76,6 +75,12 @@ function run(config, checkConfig) {
         pattern.regex.lastIndex = 0;
         let match;
         while ((match = pattern.regex.exec(line)) !== null) {
+          // Prevent infinite loop on empty-string matches (e.g., /.*/ with global flag)
+          if (match[0].length === 0) {
+            pattern.regex.lastIndex++;
+            if (pattern.regex.lastIndex > line.length) break;
+            continue;
+          }
           if (isAllowlisted(relative, pattern.label, allowlist)) continue;
           errors.push(`${relative}:${i + 1}:${match.index + 1} - "${pattern.label}" (matched: "${match[0]}")`);
         }
@@ -93,6 +98,27 @@ function run(config, checkConfig) {
     duration,
     score: passed ? checkConfig.weight : 0,
   });
+}
+
+/**
+ * Detect regex patterns likely to cause catastrophic backtracking (ReDoS).
+ * Catches: nested quantifiers (a+)+, quantified alternation (a|a)*, overlapping groups.
+ */
+function isReDoSRisk(source) {
+  // Nested quantifiers: (a+)+, (a*)+, (a+)*, (a+){2,}
+  if (/(\([^)]*[+*][^)]*\))[+*{]/.test(source)) return true;
+
+  // Quantified groups with alternation: (a|a)*, (a|b)+ where branches can match same input
+  // This catches (a|a)*, (x|x)+, and similar patterns
+  if (/\([^)]*\|[^)]*\)[+*{]/.test(source)) return true;
+
+  // Quantifier applied to a group that itself is quantified: (.+)+, (\w+)+
+  if (/\([^)]*[+*}][^)]*\)[+*{]/.test(source)) return true;
+
+  // Back-references with quantifiers: (a+)\1+ (can cause exponential matching)
+  if (/\\[1-9][+*{]/.test(source)) return true;
+
+  return false;
 }
 
 function isAllowlisted(relativePath, term, allowlist) {

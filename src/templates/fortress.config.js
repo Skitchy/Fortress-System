@@ -44,6 +44,16 @@ module.exports = {
       skipDirs: ['node_modules', '.next', '.git', 'dist', 'coverage', '.vercel'],
       weight: 20,
     },
+    // Secrets detection — scans source for hardcoded credentials (18+ built-in patterns)
+    secrets: {
+      enabled: true,
+      // Add custom patterns alongside the built-in ones:
+      // patterns: [
+      //   { regex: 'my_custom_key_[A-Za-z0-9]{32}', label: 'Custom API Key' },
+      // ],
+      // allowlist: { 'tests/fixtures/': '*' },
+      weight: 10,
+    },
     // Security audit — runs npm/yarn/pnpm audit
     security: {
       enabled: true,

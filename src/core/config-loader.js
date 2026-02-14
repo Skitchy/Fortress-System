@@ -26,6 +26,10 @@ function load(projectRoot) {
   }
 
   const detected = detector.detect(projectRoot);
+  // Guard against non-object configs (null, arrays, strings, functions)
+  if (!userConfig || typeof userConfig !== 'object' || Array.isArray(userConfig)) {
+    userConfig = {};
+  }
   return mergeWithDefaults(detected, userConfig);
 }
 
@@ -57,6 +61,12 @@ function mergeWithDefaults(detected, userConfig) {
         skipDirs: ['node_modules', '.next', '.git', 'dist', 'coverage', '.vercel'],
         allowlist: {},
         weight: 20,
+      },
+      secrets: {
+        enabled: true,
+        patterns: [],
+        allowlist: {},
+        weight: 10,
       },
       security: {
         enabled: true,

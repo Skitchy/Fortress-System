@@ -4,6 +4,7 @@ const typescriptCheck = require('../checks/typescript-check');
 const lintCheck = require('../checks/lint-check');
 const testCheck = require('../checks/test-check');
 const contentCheck = require('../checks/content-check');
+const secretsCheck = require('../checks/secrets-check');
 const securityCheck = require('../checks/security-check');
 const buildCheck = require('../checks/build-check');
 const { createResult } = require('../checks/base-check');
@@ -14,6 +15,7 @@ const CHECK_MODULES = {
   lint: lintCheck,
   test: testCheck,
   content: contentCheck,
+  secrets: secretsCheck,
   security: securityCheck,
   build: buildCheck,
 };
@@ -36,7 +38,7 @@ function run(config) {
       continue;
     }
 
-    if (checkConfig.command === null && name !== 'content') {
+    if (checkConfig.command === null && name !== 'content' && name !== 'secrets') {
       results.push(createResult(name, {
         passed: true,
         warnings: [`No ${name} command detected - skipped`],
@@ -46,7 +48,7 @@ function run(config) {
       continue;
     }
 
-    const mod = CHECK_MODULES[name];
+    const mod = Object.hasOwn(CHECK_MODULES, name) ? CHECK_MODULES[name] : null;
     if (!mod) {
       results.push(createResult(name, {
         passed: false,
@@ -58,7 +60,7 @@ function run(config) {
     }
 
     // Validate commands before execution (content check has no command)
-    if (name !== 'content' && checkConfig.command) {
+    if (name !== 'content' && name !== 'secrets' && checkConfig.command) {
       const validation = validateCommand(checkConfig.command);
       if (!validation.valid) {
         results.push(createResult(name, {

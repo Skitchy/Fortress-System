@@ -5,7 +5,7 @@ const { createResult, safeEnv } = require('./base-check');
 
 function run(config, checkConfig) {
   const start = Date.now();
-  const command = checkConfig.command || getAuditCommand(config);
+  const command = checkConfig.command || 'npm audit --production';
   const errors = [];
   const warnings = [];
   let output = '';
@@ -45,16 +45,6 @@ function run(config, checkConfig) {
     duration,
     score,
   });
-}
-
-function getAuditCommand(config) {
-  const detected = config._detected || {};
-  switch (detected.packageManager || 'npm') {
-    case 'pnpm': return 'pnpm audit --production';
-    case 'yarn': return 'yarn audit --production';
-    case 'bun': return 'bun audit';
-    default: return 'npm audit --production';
-  }
 }
 
 function parseAuditOutput(output) {

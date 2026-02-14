@@ -11,6 +11,8 @@ const COMMANDS = {
   quick: '../src/cli/commands/quick.js',
   report: '../src/cli/commands/report.js',
   validate: '../src/cli/commands/validate.js',
+  trend: '../src/cli/commands/trend.js',
+  review: '../src/cli/commands/review.js',
 };
 
 // deploy is an alias for: validate + report
@@ -47,7 +49,9 @@ if (!command || command === '--help' || command === '-h') {
   console.log(`  quick      Run quick checks (type-check, lint, test, content)`);
   console.log(`  report     Run all checks and generate scored JSON report`);
   console.log(`  validate   Run full validation pipeline (all checks, pass/fail)`);
-  console.log(`  deploy     Validate + generate report (deploy readiness gate)\n`);
+  console.log(`  deploy     Validate + generate report (deploy readiness gate)`);
+  console.log(`  trend      Show score history and quality trends`);
+  console.log(`  review     Run AI-powered security audit and code review\n`);
   console.log(`${bold}Flags:${reset}`);
   console.log(`  --json     Output JSON only (for CI piping)`);
   console.log(`  --ci       CI mode (no colors, non-interactive)\n`);
