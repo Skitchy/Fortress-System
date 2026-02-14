@@ -52,7 +52,7 @@ Install the tools you want, then run `npx fortress init --force --yes` to re-det
 
 ## What It Does
 
-Fortress runs up to 6 quality checks and gives your project a score out of 100:
+Fortress runs up to 7 quality checks and gives your project a score out of 100:
 
 | Check | What it does | Weight |
 |-------|-------------|--------|
@@ -60,10 +60,36 @@ Fortress runs up to 6 quality checks and gives your project a score out of 100:
 | **Lint** | Runs your linter (ESLint, Biome, or Next.js lint) | 15 |
 | **Tests** | Runs your test suite with proportional scoring | 25 |
 | **Content** | Scans for forbidden patterns (TODOs, FIXMEs, etc.) | 20 |
+| **Secrets** | Scans source for hardcoded credentials (19 built-in patterns) | 10 |
 | **Security** | Runs `npm audit` for vulnerable dependencies | 10 |
 | **Build** | Verifies your project builds successfully | 10 |
 
-Checks that aren't relevant to your project are disabled automatically. Scoring adapts — if you only use 3 of 6 checks, those 3 can still reach a perfect 100.
+Checks that aren't relevant to your project are disabled automatically. Scoring adapts — if you only use 3 of 7 checks, those 3 can still reach a perfect 100.
+
+### Secrets Detection
+
+The secrets check is enabled by default and scans your source files for hardcoded credentials. It ships with 19 built-in patterns covering:
+
+- **Cloud providers** — AWS access keys, secret keys
+- **API tokens** — GitHub (PAT, OAuth, fine-grained), Stripe (secret, restricted), OpenAI (legacy and project keys)
+- **Chat platforms** — Slack bot, user, and session tokens
+- **Auth tokens** — JWTs, private keys (RSA, EC, DSA, OpenSSH)
+- **Generic secrets** — hardcoded passwords, API keys, tokens, database connection strings with credentials
+
+Secrets are masked in output (e.g., `AKIA***LE`) so they're never displayed in full. Any secret found fails the check entirely — there's no partial credit for "only a few" leaked credentials.
+
+You can add custom patterns and allowlist paths in your config:
+
+```js
+secrets: {
+  enabled: true,
+  patterns: [
+    { regex: 'MYAPP_KEY_[A-Za-z0-9]{32}', label: 'MyApp API Key' },
+  ],
+  allowlist: { 'tests/fixtures/': '*' },
+  weight: 10,
+},
+```
 
 ## Commands
 
@@ -77,7 +103,7 @@ Interactive wizard to configure your quality checks. Auto-detects your framework
 
 ### `fortress quick`
 
-Fast validation — runs TypeScript, lint, test, and content checks. Skips slower checks (security audit, build). Use this before every commit.
+Fast validation — skips slower checks (security audit, build) and runs everything else. Use this before every commit.
 
 ```
 $ npx fortress quick
@@ -90,11 +116,12 @@ Running enabled checks...
   [PASS] Tests (0.1s)
          4/4 tests passed
   [SKIP] content (disabled)
+  [PASS] Secrets Detection (0.1s)
   [SKIP] security (disabled)
   [SKIP] build (disabled)
 
 ──────────────────────────────────────────────────
-  Score: 100/100  (0.4s)
+  Score: 100/100  (0.5s)
   All checks passed.
 ```
 
@@ -119,9 +146,10 @@ Full validation with a detailed scoring breakdown. Saves a timestamped JSON repo
 ```
   [PASS] Lint (15/15 pts) 0.3s
   [PASS] Tests (25/25 pts) 0.1s
+  [PASS] Secrets Detection (10/10 pts) 0.1s
   [PASS] Security (10/10 pts) 0.3s
 
-  Score: 100/100  (0.7s)
+  Score: 100/100  (0.8s)
   Deploy ready (threshold: 95)
 
   Report saved: ./fortress-reports/fortress-report-2026-02-13.json
@@ -131,6 +159,64 @@ Full validation with a detailed scoring breakdown. Saves a timestamped JSON repo
 
 Deploy readiness gate. Runs `validate`, then generates a report if it passes. Score must be 95+ to be deploy-ready.
 
+### `fortress trend`
+
+Visualize your quality score over time. Reads past report JSON files and displays an ASCII sparkline, tabular history, and trend direction.
+
+```
+$ npx fortress trend
+
+Fortress Trend
+Score history across 5 reports
+
+  Sparkline: ▃▅▆▇█
+
+  Date              Score  Status
+  ─────────────────────────────────────
+  2026-02-10 09:15  82     not ready
+  2026-02-11 14:30  88     not ready
+  2026-02-12 10:00  92     not ready
+  2026-02-13 16:45  96     deploy ready
+  2026-02-14 11:00  100    deploy ready
+
+  Trend: ↑ Improving
+```
+
+Use `--limit N` to control how many reports to show (default: 10). Supports `--json` for CI integration.
+
+### `fortress review`
+
+Run AI-powered security audit and code review using Claude Code agents. Requires [Claude Code](https://claude.ai/claude-code) to be installed — gracefully skips with a helpful message if it's not available.
+
+```
+$ npx fortress review
+
+Fortress Review
+Running AI-powered code analysis...
+
+  [DONE] Security Auditor — 3 findings
+  [DONE] Code Reviewer — verdict: APPROVE
+
+──────────────────────────────────────────────────
+
+  Security Findings:
+    MEDIUM: 1
+    LOW: 2
+
+  Code Review:
+    No issues found
+
+  Duration: 45.2s
+
+  Review saved: ./fortress-reports/fortress-review-2026-02-14.json
+```
+
+The review command invokes two agents sequentially:
+- **security-auditor** — red team analysis, findings categorized by severity (CRITICAL/HIGH/MEDIUM/LOW)
+- **code-reviewer** — structured review with MUST FIX / SHOULD FIX verdicts
+
+Results are saved as JSON for tracking. Supports `--json` for programmatic use.
+
 ### Flags
 
 | Flag | Description |
@@ -139,6 +225,9 @@ Deploy readiness gate. Runs `validate`, then generates a report if it passes. Sc
 | `--ci` | CI mode — no colors, non-interactive |
 | `--yes` / `-y` | Skip the interactive wizard, accept auto-detected values |
 | `--force` | Overwrite existing `fortress.config.js` |
+| `--limit N` | Show last N reports in `fortress trend` (default: 10) |
+
+Run `fortress <command> --help` for command-specific usage and flags.
 
 ## Pre-Commit Hook
 
@@ -150,8 +239,9 @@ Fortress: running pre-commit checks...
   [PASS] Lint (0.3s)
   [PASS] Tests (0.1s)
          4/4 tests passed
+  [PASS] Secrets Detection (0.1s)
 
-  Score: 100/100  (0.4s)
+  Score: 100/100  (0.5s)
   All checks passed.
 
 Fortress: all checks passed.
@@ -234,6 +324,16 @@ module.exports = {
       skipDirs: ['node_modules', '.next', '.git', 'dist', 'coverage', '.vercel'],
       weight: 20,
     },
+    // Secrets detection — scans source for hardcoded credentials (19 built-in patterns)
+    secrets: {
+      enabled: true,
+      // Add custom patterns alongside the built-in ones:
+      // patterns: [
+      //   { regex: 'MYAPP_KEY_[A-Za-z0-9]{32}', label: 'MyApp API Key' },
+      // ],
+      // allowlist: { 'tests/fixtures/': '*' },
+      weight: 10,
+    },
     // Security audit — runs npm/yarn/pnpm audit
     security: {
       enabled: true,
@@ -262,7 +362,7 @@ When you run `fortress init`, it automatically sets up several things for Claude
 
 **CLAUDE.md** — Tells Claude about your project stack and quality standards. Claude will know to run `fortress quick` before committing and `fortress report` before deploying.
 
-**Auto-permissions** — Configures `.claude/settings.local.json` so Claude can run fortress commands without prompting you each time.
+**Auto-permissions** — Configures `.claude/settings.local.json` so Claude can run fortress commands (including `fortress trend` and `fortress review`) without prompting you each time.
 
 **Statusline** — Shows your current Fortress score right in the Claude Code terminal:
 ```
@@ -276,9 +376,9 @@ Fortress: 95/100 | DEPLOY READY | 5m ago
 | **code-reviewer** | Structured code review with MUST FIX / SHOULD FIX verdicts |
 | **security-auditor** | Red team security analysis — finds exploitable vulnerabilities with evidence |
 
-Use them before deploying or merging significant changes. They run as parallel subagents, each producing a focused report.
+Use them before deploying or merging significant changes. They run as parallel subagents, each producing a focused report. You can invoke them directly from the CLI with `fortress review`, or use them within Claude Code as subagents.
 
-None of this requires Claude Code to work. Fortress runs the same in any terminal.
+None of this requires Claude Code to work. Fortress runs the same in any terminal — the `review` command simply skips gracefully when Claude Code isn't installed.
 
 ## Supported Stacks
 
@@ -331,7 +431,7 @@ score = (points earned / total possible points) × 100
 - **Tests** use proportional scoring — 8 of 10 tests passing = 80% of the test weight
 - **Lint** uses penalty scoring — each warning costs 5 points
 - **Security** uses penalty scoring — each critical/high vulnerability costs 5 points
-- **TypeScript, Content, Build** are pass/fail — full points or zero
+- **TypeScript, Content, Secrets, Build** are pass/fail — full points or zero
 
 Disabled checks are excluded from the total, so your score always reflects only what you've enabled.
 
@@ -340,10 +440,12 @@ Disabled checks are excluded from the total, so your score always reflects only 
 Fortress takes security seriously, even as a dev tool:
 
 - **Zero runtime dependencies** — nothing in your supply chain to compromise
+- **Source-code secret detection** — 19 built-in patterns catch hardcoded credentials before they reach version control
 - **Command validation** — config commands are checked for shell injection (`;`, `&&`, `|`, `$()`, newlines, etc.) before execution
 - **Environment sandboxing** — child processes receive only essential env vars (`PATH`, `HOME`, `CI`), not your API keys or tokens
-- **Symlink protection** — content scanning skips symlinks to prevent traversal outside your project
+- **Symlink protection** — content and secrets scanning skip symlinks to prevent traversal outside your project
 - **Path traversal guards** — report output is validated to stay within your project directory
+- **ReDoS protection** — user-supplied regex patterns are checked for catastrophic backtracking before compilation
 
 Note: `fortress.config.js` is a JavaScript file loaded via `require()`. Like any JS config file (webpack, eslint, jest), it can execute arbitrary code. Only use config files you trust — the same as any other tool in the Node.js ecosystem.
 
@@ -351,6 +453,7 @@ Note: `fortress.config.js` is a JavaScript file loaded via `require()`. Like any
 
 - Node.js 18 or later
 - Git (for pre-commit hooks)
+- Claude Code (optional, for `fortress review`)
 - Zero runtime dependencies
 
 ## License
