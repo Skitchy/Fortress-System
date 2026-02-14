@@ -1,5 +1,11 @@
 # Fortress System
 
+[![npm version](https://img.shields.io/npm/v/fortress-system?color=22d3ee&label=npm)](https://www.npmjs.com/package/fortress-system)
+[![license](https://img.shields.io/badge/license-MIT-a78bfa)](https://github.com/Skitchy/Fortress-System/blob/main/LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D18-4ade80)](https://nodejs.org)
+[![zero deps](https://img.shields.io/badge/dependencies-0-22d3ee)](https://www.npmjs.com/package/fortress-system)
+[![fortress](https://img.shields.io/badge/fortress-100%2F100-4ade80)](https://www.fortress-system.com)
+
 Zero-dependency quality validation for JavaScript and TypeScript projects. One command to set up, one command to check your code.
 
 Built for developers using [Claude Code](https://claude.ai/claude-code) — but works with any workflow.
