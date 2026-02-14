@@ -45,10 +45,10 @@ That's totally fine. The wizard will detect that you don't have tooling set up y
   • Add a test framework: npm install --save-dev vitest (or jest, mocha)
   • Add a linter:         npm install --save-dev eslint (or biome)
   • Add TypeScript:       npm install --save-dev typescript
-  • Then re-run:          fortress init --force to pick up the new tools
+  • Then re-run:          fortress init --force --yes to pick up the new tools
 ```
 
-Install the tools you want, then run `npx fortress init --force` to re-detect your project.
+Install the tools you want, then run `npx fortress init --force --yes` to re-detect your project.
 
 ## What It Does
 

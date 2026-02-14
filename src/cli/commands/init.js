@@ -294,7 +294,7 @@ async function runWizard(detected) {
       console.log(`  ${c.gray}•${c.reset} Add a test framework: ${c.bold}npm install --save-dev vitest${c.reset} ${c.gray}(or jest, mocha)${c.reset}`);
       console.log(`  ${c.gray}•${c.reset} Add a linter:         ${c.bold}npm install --save-dev eslint${c.reset} ${c.gray}(or biome)${c.reset}`);
       console.log(`  ${c.gray}•${c.reset} Add TypeScript:       ${c.bold}npm install --save-dev typescript${c.reset}`);
-      console.log(`  ${c.gray}•${c.reset} Then re-run:          ${c.bold}fortress init --force${c.reset} to pick up the new tools`);
+      console.log(`  ${c.gray}•${c.reset} Then re-run:          ${c.bold}fortress init --force --yes${c.reset} to pick up the new tools`);
     }
 
     finalConfig = detected;
@@ -313,29 +313,49 @@ async function runWizard(detected) {
     console.log(`  ${line}`);
   }
 
-  // Show install instructions for tools the user selected but aren't installed yet
-  if (missing.length > 0) {
-    console.log('');
-    console.log(`  ${c.yellow}${c.bold}Some tools you selected aren't installed yet:${c.reset}`);
-    console.log(`  ${c.gray}Those checks are saved in your config but disabled until you install them.${c.reset}\n`);
-    for (const tool of missing) {
-      console.log(`  ${c.gray}•${c.reset} ${c.bold}${tool.name}${c.reset}: ${c.cyan}${tool.install}${c.reset}`);
-      if (tool.then) {
-        console.log(`    ${c.gray}then: ${tool.then}${c.reset}`);
-      }
-    }
-    console.log(`\n  ${c.gray}After installing, run:${c.reset} ${c.bold}npx fortress init --force${c.reset}`);
-  }
-
-  // Final guidance
+  // Final guidance — different messaging depending on whether tools are missing
   console.log('');
   console.log(`  ${c.bold}\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550${c.reset}`);
-  console.log(`  ${c.bold}Setup complete!${c.reset}`);
-  console.log('');
-  console.log(`  Type ${c.bold}claude${c.reset} in this terminal and wait`);
-  console.log(`  for the awesomeness!`);
-  console.log('');
-  console.log(`  Or run: ${c.bold}npx fortress quick${c.reset}`);
+
+  if (missing.length > 0) {
+    console.log(`  ${c.bold}Almost there!${c.reset} Just a few more steps:\n`);
+
+    // Step 1: install commands
+    let step = 1;
+    console.log(`  ${c.bold}Step ${step}.${c.reset} Copy and paste this into your terminal to`);
+    console.log(`         install the tools you selected:\n`);
+    const installCmds = missing.map(t => t.install);
+    console.log(`         ${c.cyan}${installCmds.join(' && ')}${c.reset}\n`);
+
+    // Step 1b: any follow-up init commands (like npx tsc --init)
+    const initCmds = missing.filter(t => t.then);
+    if (initCmds.length > 0) {
+      step++;
+      console.log(`  ${c.bold}Step ${step}.${c.reset} Set up config files for your new tools:\n`);
+      for (const tool of initCmds) {
+        console.log(`         ${c.cyan}${tool.then}${c.reset}`);
+      }
+      console.log('');
+    }
+
+    // Step N: re-run fortress to pick up the tools
+    step++;
+    console.log(`  ${c.bold}Step ${step}.${c.reset} Tell Fortress to detect your new tools:\n`);
+    console.log(`         ${c.cyan}npx fortress init --force --yes${c.reset}\n`);
+
+    // Step N+1: run fortress quick
+    step++;
+    console.log(`  ${c.bold}Step ${step}.${c.reset} Verify everything works:\n`);
+    console.log(`         ${c.cyan}npx fortress quick${c.reset}`);
+  } else {
+    console.log(`  ${c.bold}Setup complete!${c.reset}`);
+    console.log('');
+    console.log(`  Type ${c.bold}claude${c.reset} in this terminal and wait`);
+    console.log(`  for the awesomeness!`);
+    console.log('');
+    console.log(`  Or run: ${c.bold}npx fortress quick${c.reset}`);
+  }
+
   console.log(`  ${c.bold}\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550${c.reset}`);
   console.log('');
 })();
