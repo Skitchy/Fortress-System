@@ -95,7 +95,7 @@ function getAuditCommand(det) {
   }
 }
 
-function generateConfig(detected) {
+function generateConfig(detected, originalDetected) {
   const projectRoot = process.cwd();
   const configPath = path.join(projectRoot, 'fortress.config.js');
 
@@ -104,21 +104,45 @@ function generateConfig(detected) {
     'utf-8'
   );
 
+  // Only enable checks for tools that are actually installed.
+  // The user may have selected tools in the wizard that aren't installed yet.
+  const orig = originalDetected || detected;
+  const tsInstalled = orig.language === 'typescript';
+  const linterInstalled = !!orig.linter;
+  // node:test is built into Node.js — always available if selected
+  const testInstalled = !!orig.testFramework || detected.testFramework === 'node:test';
+  const buildAvailable = !!orig.buildCommand;
+
   const tsCommand = detected.language === 'typescript' ? 'npx tsc --noEmit' : '';
   const lintCommand = getLintCommand(detected);
   const testCommand = getTestCommand(detected);
   const securityCommand = getAuditCommand(detected);
   const buildCommand = detected.buildCommand || '';
 
+  // Track tools the user wants but doesn't have installed yet
+  const missing = [];
+  if (detected.language === 'typescript' && !tsInstalled) {
+    missing.push({ name: 'TypeScript', install: 'npm install --save-dev typescript', then: 'npx tsc --init' });
+  }
+  if (detected.linter && !linterInstalled) {
+    const pkg = detected.linter === 'biome' ? '@biomejs/biome' : 'eslint';
+    missing.push({ name: detected.linter, install: `npm install --save-dev ${pkg}` });
+  }
+  if (detected.testFramework && !testInstalled) {
+    if (detected.testFramework !== 'node:test') {
+      missing.push({ name: detected.testFramework, install: `npm install --save-dev ${detected.testFramework}` });
+    }
+  }
+
   const config = template
-    .replace('%TYPESCRIPT_ENABLED%', String(detected.language === 'typescript'))
+    .replace('%TYPESCRIPT_ENABLED%', String(detected.language === 'typescript' && tsInstalled))
     .replace("'%TYPESCRIPT_COMMAND%'", detected.language === 'typescript' ? `'${tsCommand}'` : "''")
-    .replace('%LINT_ENABLED%', String(!!detected.linter))
+    .replace('%LINT_ENABLED%', String(!!detected.linter && linterInstalled))
     .replace("'%LINT_COMMAND%'", detected.linter ? `'${lintCommand}'` : "''")
-    .replace('%TEST_ENABLED%', String(!!detected.testFramework))
+    .replace('%TEST_ENABLED%', String(!!detected.testFramework && testInstalled))
     .replace("'%TEST_COMMAND%'", detected.testFramework ? `'${testCommand}'` : "''")
     .replace("'%SECURITY_COMMAND%'", `'${securityCommand}'`)
-    .replace('%BUILD_ENABLED%', String(!!detected.buildCommand))
+    .replace('%BUILD_ENABLED%', String(buildAvailable))
     .replace("'%BUILD_COMMAND%'", detected.buildCommand ? `'${buildCommand}'` : "''");
 
   fs.writeFileSync(configPath, config);
@@ -147,7 +171,7 @@ function generateConfig(detected) {
     filesCreated.push(`${c.yellow}Git hook installation skipped${c.reset} ${c.gray}(non-critical)${c.reset}`);
   }
 
-  return filesCreated;
+  return { filesCreated, missing };
 }
 
 async function runWizard(detected) {
@@ -244,8 +268,9 @@ async function runWizard(detected) {
     console.log(`${c.gray}--force flag detected, overwriting...${c.reset}\n`);
   }
 
-  // Auto-detect project
+  // Auto-detect project — save original before wizard may modify it
   const detected = detector.detect(projectRoot);
+  const originalDetected = { ...detected };
 
   let finalConfig;
 
@@ -282,10 +307,24 @@ async function runWizard(detected) {
   }
 
   // Step 7: Write files
-  const filesCreated = generateConfig(finalConfig);
+  const { filesCreated, missing } = generateConfig(finalConfig, originalDetected);
   console.log('');
   for (const line of filesCreated) {
     console.log(`  ${line}`);
+  }
+
+  // Show install instructions for tools the user selected but aren't installed yet
+  if (missing.length > 0) {
+    console.log('');
+    console.log(`  ${c.yellow}${c.bold}Some tools you selected aren't installed yet:${c.reset}`);
+    console.log(`  ${c.gray}Those checks are saved in your config but disabled until you install them.${c.reset}\n`);
+    for (const tool of missing) {
+      console.log(`  ${c.gray}•${c.reset} ${c.bold}${tool.name}${c.reset}: ${c.cyan}${tool.install}${c.reset}`);
+      if (tool.then) {
+        console.log(`    ${c.gray}then: ${tool.then}${c.reset}`);
+      }
+    }
+    console.log(`\n  ${c.gray}After installing, run:${c.reset} ${c.bold}npx fortress init --force${c.reset}`);
   }
 
   // Final guidance

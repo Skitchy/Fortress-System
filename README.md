@@ -17,7 +17,7 @@ Don't have them? Install Node.js from [nodejs.org](https://nodejs.org) (LTS reco
 ## Quick Start
 
 ```bash
-npx fortress setup
+npx fortress-system setup
 ```
 
 That's it. This single command will:
@@ -30,6 +30,8 @@ That's it. This single command will:
 6. Install a pre-commit hook that runs checks before every commit
 
 The wizard auto-detects your stack and generates a `fortress.config.js` tailored to your project.
+
+> **Note:** The first time you run it, use `npx fortress-system` (the package name). Once installed, you can use the shorter `npx fortress` for all commands.
 
 ### Starting from an empty project?
 
@@ -46,7 +48,7 @@ That's totally fine. The wizard will detect that you don't have tooling set up y
   • Then re-run:          fortress init --force to pick up the new tools
 ```
 
-Install the tools you want, then run `fortress init --force` to re-detect your project.
+Install the tools you want, then run `npx fortress init --force` to re-detect your project.
 
 ## What It Does
 
@@ -290,7 +292,7 @@ Fortress auto-detects and supports:
 
 ## CI / CD
 
-Add Fortress to your pipeline:
+Fortress is installed as a project dependency during setup, so `npx fortress` works in CI after `npm ci`:
 
 ```yaml
 # GitHub Actions example
