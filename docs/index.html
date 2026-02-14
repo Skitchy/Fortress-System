@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fortress System — Quality Gate for JavaScript & TypeScript</title>
+  <meta name="description" content="Zero-dependency CLI quality gate for JS/TS projects. One command to set up, one command to validate. 7 automated checks, adaptive scoring, Claude Code integration.">
+  <meta property="og:title" content="Fortress System">
+  <meta property="og:description" content="Zero-dependency quality gate for JavaScript & TypeScript projects.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fortress-system.com">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://fortress-system.com">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏰</text></svg>">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg-card: #111827;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --accent: #22d3ee;
+      --accent-glow: rgba(34, 211, 238, 0.15);
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --purple: #a78bfa;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* --- NAV --- */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      background: rgba(10, 14, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--accent); }
+
+    /* --- HERO --- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      color: var(--text-dim);
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .install-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .install-box:hover { border-color: var(--accent); }
+
+    .install-box .prompt { color: var(--green); user-select: none; }
+    .install-box .cmd { color: var(--text); }
+
+    .install-box .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-family: var(--font-sans);
+      transition: all 0.2s;
+    }
+
+    .install-box .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .hero-links {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .hero-links a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* --- TERMINAL DEMO --- */
+    .terminal-section {
+      padding: 4rem 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .terminal {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 720px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .terminal-bar {
+      background: #161b22;
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot.red { background: #ff5f57; }
+    .terminal-dot.yellow { background: #febc2e; }
+    .terminal-dot.green { background: #28c840; }
+
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+
+    .terminal-body {
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .t-dim { color: var(--text-dim); }
+    .t-green { color: var(--green); }
+    .t-red { color: var(--red); }
+    .t-yellow { color: var(--yellow); }
+    .t-cyan { color: var(--accent); }
+    .t-purple { color: var(--purple); }
+    .t-bold { font-weight: 700; }
+
+    /* --- FEATURES --- */
+    .features {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .features .subtitle {
+      text-align: center;
+      color: var(--text-dim);
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover { border-color: var(--accent); }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+    }
+
+    .feature-icon {
+      font-size: 1.3rem;
+    }
+
+    /* --- CHECKS TABLE --- */
+    .checks-section {
+      padding: 6rem 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .checks-section h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .checks-section .subtitle {
+      text-align: center;
+      color: var(--text-dim);
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    .checks-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .checks-table th,
+    .checks-table td {
+      text-align: left;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checks-table th {
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .checks-table td:first-child {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .checks-table td:last-child {
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      text-align: right;
+    }
+
+    /* --- WORKFLOW --- */
+    .workflow {
+      padding: 6rem 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .workflow h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .workflow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .workflow-step {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .step-content h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-content p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+    }
+
+    .step-content code {
+      font-family: var(--font-mono);
+      background: var(--bg-card);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+
+    /* --- CTA --- */
+    .cta {
+      padding: 6rem 2rem;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .cta p {
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .cta-install {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.85rem 2rem;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .cta-install:hover {
+      background: var(--accent-glow);
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    /* --- FOOTER --- */
+    footer {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    footer a:hover { color: var(--accent); }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 640px) {
+      nav { padding: 0.75rem 1rem; }
+      .nav-links { gap: 1rem; }
+      .hero { padding: 5rem 1.25rem 3rem; }
+      .install-box { font-size: 0.9rem; padding: 0.85rem 1rem; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .terminal-body { font-size: 0.75rem; padding: 1rem; }
+      .hero-links { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-brand">fortress</a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#checks">Checks</a></li>
+      <li><a href="#workflow">Workflow</a></li>
+      <li><a href="https://github.com/Skitchy/Fortress-System" target="_blank">GitHub</a></li>
+      <li><a href="https://www.npmjs.com/package/fortress-system" target="_blank">npm</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <img src="logo.png" alt="Fortress System" class="hero-logo" onerror="this.style.display='none'">
+    <h1><span>Fortress</span> System</h1>
+    <p class="hero-subtitle">
+      Zero-dependency quality gate for JavaScript &amp; TypeScript projects.
+      One command to set up. One command to check your code.
+    </p>
+    <div class="install-box" onclick="copyInstall()" title="Click to copy">
+      <span class="prompt">$</span>
+      <span class="cmd">npx fortress-system setup</span>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+    <div class="hero-links">
+      <a href="https://github.com/Skitchy/Fortress-System" target="_blank">View on GitHub</a>
+      <a href="https://www.npmjs.com/package/fortress-system" target="_blank">View on npm</a>
+    </div>
+  </section>
+
+  <!-- TERMINAL DEMO -->
+  <section class="terminal-section">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot red"></div>
+        <div class="terminal-dot yellow"></div>
+        <div class="terminal-dot green"></div>
+        <span class="terminal-title">fortress quick</span>
+      </div>
+      <div class="terminal-body">
+<span class="t-cyan t-bold">Fortress Quick Validation</span>
+<span class="t-dim">Running enabled checks...</span>
+
+  <span class="t-green">[PASS]</span> Lint <span class="t-dim">(0.3s)</span>
+  <span class="t-green">[PASS]</span> Tests <span class="t-dim">(0.1s)</span>
+         <span class="t-dim">4/4 tests passed</span>
+  <span class="t-green">[PASS]</span> Secrets Detection <span class="t-dim">(0.1s)</span>
+  <span class="t-green">[PASS]</span> Content <span class="t-dim">(0.2s)</span>
+
+<span class="t-dim">──────────────────────────────────────────────────</span>
+  <span class="t-bold">Score: <span class="t-green">100/100</span></span>  <span class="t-dim">(0.7s)</span>
+  <span class="t-green">All checks passed.</span>
+</div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <h2>Why Fortress?</h2>
+    <p class="subtitle">Quality checks that work with your stack, not against it.</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3><span class="feature-icon">0</span> Zero Dependencies</h3>
+        <p>Built entirely on Node.js built-ins. Nothing in your supply chain to compromise. No dependency updates to chase.</p>
+      </div>
+      <div class="feature-card">
+        <h3><span class="feature-icon">&gt;_</span> One Command Setup</h3>
+        <p><code>npx fortress-system setup</code> handles everything &mdash; package.json, git init, install, interactive wizard, pre-commit hook.</p>
+      </div>
+      <div class="feature-card">
+        <h3><span class="feature-icon">&uarr;</span> Adaptive Scoring</h3>
+        <p>Only using 3 of 7 checks? Your score adapts. Disabled checks don't penalize you. A perfect 100 is always reachable.</p>
+      </div>
+      <div class="feature-card">
+        <h3><span class="feature-icon">#</span> Secrets Detection</h3>
+        <p>19 built-in patterns catch AWS keys, GitHub tokens, Stripe secrets, JWTs, private keys, and more &mdash; before they hit version control.</p>
+      </div>
+      <div class="feature-card">
+        <h3><span class="feature-icon">&lt;/&gt;</span> Claude Code Integration</h3>
+        <p>Auto-configures CLAUDE.md, permissions, statusline, and two specialized AI agents for security audit and code review.</p>
+      </div>
+      <div class="feature-card">
+        <h3><span class="feature-icon">CI</span> CI/CD Ready</h3>
+        <p>JSON output, exit codes, <code>--ci</code> flag. Drop <code>fortress validate</code> into any pipeline as a quality gate.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECKS -->
+  <section class="checks-section" id="checks">
+    <h2>7 Quality Checks</h2>
+    <p class="subtitle">Each check is auto-detected and independently configurable.</p>
+    <table class="checks-table">
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>What it does</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>TypeScript</td>
+          <td>Runs tsc --noEmit to catch type errors</td>
+          <td>20</td>
+        </tr>
+        <tr>
+          <td>Lint</td>
+          <td>Runs your linter (ESLint, Biome, Next.js)</td>
+          <td>15</td>
+        </tr>
+        <tr>
+          <td>Tests</td>
+          <td>Runs your test suite with proportional scoring</td>
+          <td>25</td>
+        </tr>
+        <tr>
+          <td>Content</td>
+          <td>Scans for TODOs, FIXMEs, forbidden patterns</td>
+          <td>20</td>
+        </tr>
+        <tr>
+          <td>Secrets</td>
+          <td>Detects hardcoded credentials (19 patterns)</td>
+          <td>10</td>
+        </tr>
+        <tr>
+          <td>Security</td>
+          <td>Runs npm audit for vulnerable dependencies</td>
+          <td>10</td>
+        </tr>
+        <tr>
+          <td>Build</td>
+          <td>Verifies your project builds successfully</td>
+          <td>10</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- WORKFLOW -->
+  <section class="workflow" id="workflow">
+    <h2>How It Works</h2>
+    <div class="workflow-steps">
+      <div class="workflow-step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Install &amp; detect</h3>
+          <p>Run <code>npx fortress-system setup</code> in any JS/TS project. Fortress detects your framework, linter, test runner, and package manager automatically.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Code with confidence</h3>
+          <p>Run <code>fortress quick</code> as you work. The pre-commit hook catches issues before they reach your repo.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Validate before deploy</h3>
+          <p>Run <code>fortress deploy</code> for a full quality gate. Score 95+ means deploy-ready. Track your trend with <code>fortress trend</code>.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <h3>AI-powered review</h3>
+          <p>Run <code>fortress review</code> to invoke security audit and code review agents via Claude Code. Optional but powerful.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STACKS -->
+  <section class="features">
+    <h2>Works With Your Stack</h2>
+    <p class="subtitle">Auto-detects and configures for your tools.</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Frameworks</h3>
+        <p>Next.js, React, Vue, Nuxt, Svelte, SvelteKit, Angular, Express, Fastify, Koa</p>
+      </div>
+      <div class="feature-card">
+        <h3>Test Runners</h3>
+        <p>Vitest, Jest, Mocha, Node.js built-in test runner</p>
+      </div>
+      <div class="feature-card">
+        <h3>Tooling</h3>
+        <p>TypeScript, ESLint, Biome, npm, yarn, pnpm, bun</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Ship better code, starting now.</h2>
+    <p>Takes 30 seconds to set up. Zero config required.</p>
+    <a href="https://github.com/Skitchy/Fortress-System" class="cta-install" target="_blank">
+      npx fortress-system setup
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>
+      Fortress System &middot; MIT License &middot;
+      <a href="https://github.com/Skitchy/Fortress-System" target="_blank">GitHub</a> &middot;
+      <a href="https://www.npmjs.com/package/fortress-system" target="_blank">npm</a>
+    </p>
+  </footer>
+
+  <script>
+    function copyInstall() {
+      navigator.clipboard.writeText('npx fortress-system setup').then(function() {
+        var btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
