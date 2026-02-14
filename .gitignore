@@ -29,3 +29,5 @@ npm-debug.log*
 # Notes (personal scratch files)
 notes.md
 notes
+*.docx
+images/
