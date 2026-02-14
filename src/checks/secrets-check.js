@@ -46,9 +46,16 @@ const BUILT_IN_PATTERNS = [
 
 const DEFAULT_EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
-  '.json', '.yaml', '.yml', '.env', '.sh', '.py',
+  '.json', '.yaml', '.yml', '.sh', '.py',
   '.rb', '.go', '.java', '.kt', '.swift', '.rs',
   '.toml', '.ini', '.cfg', '.conf', '.properties',
+]);
+
+// Dotfiles have no extension per path.extname(), so match by full name
+const DEFAULT_DOTFILES = new Set([
+  '.env', '.env.local', '.env.production', '.env.staging',
+  '.env.development', '.env.test',
+  '.npmrc', '.pypirc',
 ]);
 
 const DEFAULT_SKIP_DIRS = new Set([
@@ -222,10 +229,12 @@ function collectFiles(dir, extensions, skipDirs) {
   for (const entry of entries) {
     if (skipDirs.has(entry.name)) continue;
     if (entry.isSymbolicLink()) continue;
+    // Skip hidden directories (caches, tooling state, etc.) but not hidden files (.env)
+    if (entry.isDirectory() && entry.name.startsWith('.')) continue;
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       files.push(...collectFiles(fullPath, extensions, skipDirs));
-    } else if (extensions.has(path.extname(entry.name))) {
+    } else if (extensions.has(path.extname(entry.name)) || DEFAULT_DOTFILES.has(entry.name)) {
       files.push(fullPath);
     }
   }

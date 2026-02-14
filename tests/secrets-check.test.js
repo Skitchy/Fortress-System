@@ -169,6 +169,25 @@ describe('secrets-check', () => {
     }
   });
 
+  it('skips hidden directories but scans hidden files', () => {
+    const dir = createTempProject({
+      '.cache/uv/pkg/config.py': 'password = "SuperSecret123!"',
+      '.venv/lib/key.py': '-----BEGIN RSA PRIVATE KEY-----',
+      '.env': 'API_KEY="sk_live_abcdefghijklmnopqrstuvwx"',
+      'src/app.js': 'console.log("clean");',
+    });
+    try {
+      const result = secretsCheck.run({ root: dir }, baseConfig);
+      assert.equal(result.passed, false);
+      // Should find the .env secret but NOT the ones in .cache/ or .venv/
+      assert.ok(result.errors.some(e => e.includes('.env')));
+      assert.ok(!result.errors.some(e => e.includes('.cache')));
+      assert.ok(!result.errors.some(e => e.includes('.venv')));
+    } finally {
+      cleanup(dir);
+    }
+  });
+
   it('skips node_modules by default', () => {
     const dir = createTempProject({
       'node_modules/pkg/config.js': 'const key = "AKIAIOSFODNN7EXAMPLE";',
